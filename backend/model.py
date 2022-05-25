@@ -2,7 +2,9 @@ import threading
 from backend.graph import Graph
 from backend.market import Market
 from backend.newsfeed import NewsFeed
-from backend.subscription import Subscription
+from backend.subscriptable import Subscription
+from backend.routine import Routine
+from backend.schedulers import ThreadScheduler
 from functools import wraps
 
 def singleton(func):
@@ -80,12 +82,15 @@ class Model:
 
     @classmethod
     @singleton 
-    def ReleaseLock(self):
-        while (self.ExecuteSubscriptions_()):
+    def ReleaseLock(self): 
+        self.ScheduleRoutine(Routine(ThreadScheduler(), self.ExecuteSubscriptions_))
+        self.mutex_.release() 
+
+    def ExecuteSubscriptions_(self, nan):
+        while (self.ExecuteSingleSubscription_()):
             pass
-        self.mutex_.release()
     
-    def ExecuteSubscriptions_(self):
+    def ExecuteSingleSubscription_(self):
         for subscription in self.subscriptions_:
             if (subscription.IsActive()):
                 subscription.OneShotExecute()

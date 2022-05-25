@@ -1,6 +1,6 @@
 from backend.model import Model
 from backend.callbacks.example import GraphChangedCallback
-from backend.subscription import Subscription
+from backend.subscriptable import Subscription
 
 # Setup:
 Model.AddSubscription(Subscription(Model.GetGraph(), GraphChangedCallback()))
