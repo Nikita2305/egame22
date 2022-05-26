@@ -26,7 +26,9 @@ class Routine (ObjectCounter):
 
     def Execute(self): 
         self.executable_(self)
+        backend.model.Model.AcquireLock()
         backend.model.Model.EraseRoutine_(self) # Erase at most one of several possible equal Routines
+        backend.model.Model.ReleaseLock(schedule_subscriptions=False)
 
     def Schedule(self):
         self.scheduler_.Schedule(self.Execute)

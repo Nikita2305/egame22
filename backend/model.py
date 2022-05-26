@@ -104,14 +104,12 @@ class Model:
     @classmethod
     @singleton 
     def EraseRoutine_(self, routine): 
-        self.AcquireLock()
         ret = False
         for i, s in enumerate(self.routines_):
             if (s.IsEqual(routine)):
                 self.routines_.pop(i)
                 ret = True
                 break
-        self.ReleaseLock(schedule_subscriptions=False)
         return ret
 
     def ExecuteSubscriptions_(self, nan):

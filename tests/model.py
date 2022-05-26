@@ -115,7 +115,7 @@ class Test2_StressModel (unittest.TestCase):
 
     def test2_locking_costs(self):
         expected_time = 1
-        THREADS = 1000
+        THREADS = 10000
         ITER = 100
         expected_ans = THREADS
 

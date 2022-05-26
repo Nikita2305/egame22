@@ -18,7 +18,9 @@ class Timer:
 
     def Run(self):
         self.time_ = time.time()
+        backend.model.Model.AcquireLock()
         backend.model.Model.ScheduleRoutine(Routine(self.Loop), is_deferred=False)
+        backend.model.Model.ReleaseLock(schedule_subscriptions=False)
 
     def Stop(self):
         self.mutex_.acquire()
