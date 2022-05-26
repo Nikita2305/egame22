@@ -1,4 +1,4 @@
-from backend.subscriptable import Subscriptable, notifier
+from backend.wheels.subscriptable import Subscriptable, notifier
 
 class Graph (Subscriptable):
     

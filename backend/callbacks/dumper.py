@@ -4,9 +4,9 @@ import pickle
 
 class Dumper (Executable):
     
-    def __init__(self, filename, *args, **kwargs):
+    def __init__(self, filename):
         self.filename_ = filename
-        super().__init__(ThreadScheduler(), *args, **kwargs)
+        super().__init__()
     
     def __call__(self, routine):
         Model.AcqireLock()

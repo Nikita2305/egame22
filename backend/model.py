@@ -2,11 +2,11 @@ import threading
 from backend.graph import Graph
 from backend.market import Market
 from backend.newsfeed import NewsFeed
-from backend.subscriptable import Subscription
-from backend.routine import Routine
-from backend.schedulers import ThreadScheduler
+from backend.wheels.subscriptable import Subscription
+from backend.wheels.routine import Routine
+from backend.wheels.schedulers import ThreadScheduler
+from backend.wheels.timer import Timer
 from functools import wraps
-from backend.timer import Timer
 
 def singleton(func):
     @wraps(func)
@@ -15,6 +15,12 @@ def singleton(func):
     return wrapper   
 
 class Model:
+    """
+    - Singleton
+    - Любое обращение к методам/полям должно сопровождаться AcquireLock/ReleaseLock
+    - Управление Lock-ом полностью на стороне пользователя
+    - Корткие критические секции
+    """
 
     instance_ = None
     
@@ -66,29 +72,22 @@ class Model:
     @classmethod
     @singleton 
     def EraseSubscription(self, subscription):
+        ret = False
         for i, s in enumerate(self.subscriptions_):
             if (s.IsEqual(subscription)):
                 self.subscriptions_.pop(i)
-                return True
-        return False
+                ret = True
+                break
+        return ret
 
     @classmethod
     @singleton 
     def ScheduleRoutine(self, routine, is_deferred=True):
         self.routines_.append(routine)
         if is_deferred:
-            routine.ScheduleDefferedExecution()
+            routine.ScheduleDefferedExecution() # with Timer
         else:
             routine.Schedule()
-
-    @classmethod
-    @singleton 
-    def EraseRoutine(self, routine):
-        for i, s in enumerate(self.routines_):
-            if (s.IsEqual(routine)):
-                self.routines_.pop(i)
-                return True
-        return False
 
     @classmethod
     @singleton 
@@ -97,16 +96,33 @@ class Model:
 
     @classmethod
     @singleton 
-    def ReleaseLock(self): 
-        self.ScheduleRoutine(Routine(ThreadScheduler(), self.ExecuteSubscriptions_))
-        self.mutex_.release() 
+    def ReleaseLock(self, schedule_subscriptions=True): 
+        self.mutex_.release()
+        if (schedule_subscriptions):
+            self.ScheduleRoutine(Routine(self.ExecuteSubscriptions_)) 
+
+    @classmethod
+    @singleton 
+    def EraseRoutine_(self, routine): 
+        self.AcquireLock()
+        ret = False
+        for i, s in enumerate(self.routines_):
+            if (s.IsEqual(routine)):
+                self.routines_.pop(i)
+                ret = True
+                break
+        self.ReleaseLock(schedule_subscriptions=False)
+        return ret
 
     def ExecuteSubscriptions_(self, nan):
         while (self.ExecuteSingleSubscription_()):
             pass
     
     def ExecuteSingleSubscription_(self):
-        for subscription in self.subscriptions_:
+        self.AcquireLock()
+        subs = self.subscriptions_
+        self.ReleaseLock(schedule_subscriptions=False)
+        for subscription in subs:
             if (subscription.IsActive()):
                 subscription.OneShotExecute()
                 return True
