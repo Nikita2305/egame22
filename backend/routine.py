@@ -20,11 +20,15 @@ class Routine (ObjectCounter):
         self.execution_started_ = None
         super().__init__()
 
-    def DeferredExecute(self):
-        self.execution_started_ = time.time()
-        time.sleep(self.sleeptime_)
+    def GetSleepTime(self):
+        return self.sleeptime_
+
+    def Execute(self): 
         self.executable_(self)
         backend.model.Model.EraseRoutine(self) # Erase at most one of several possible equal Routines
 
     def Schedule(self):
-        self.scheduler_.Schedule(self.DeferredExecute)
+        self.scheduler_.Schedule(self.Execute)
+    
+    def ScheduleDefferedExecution(self):
+        backend.model.Model.GetTimer().Add(self)

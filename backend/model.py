@@ -6,6 +6,7 @@ from backend.subscriptable import Subscription
 from backend.routine import Routine
 from backend.schedulers import ThreadScheduler
 from functools import wraps
+from backend.timer import Timer
 
 def singleton(func):
     @wraps(func)
@@ -24,12 +25,23 @@ class Model:
         self.mutex_ = threading.Lock()
         self.subscriptions_ = []
         self.routines_ = []
-
+        self.timer_ = Timer()
+         
     @classmethod
     def GetInstance(cls):
         if cls.instance_ is None:
             cls.instance_ = Model()
         return cls.instance_
+
+    @classmethod
+    @singleton
+    def Run(self):
+        self.timer_.Run()
+
+    @classmethod
+    @singleton
+    def GetTimer(self): 
+        return self.timer_
 
     @classmethod
     @singleton 
@@ -62,9 +74,12 @@ class Model:
 
     @classmethod
     @singleton 
-    def ScheduleRoutine(self, routine):
+    def ScheduleRoutine(self, routine, is_deferred=True):
         self.routines_.append(routine)
-        routine.Schedule()
+        if is_deferred:
+            routine.ScheduleDefferedExecution()
+        else:
+            routine.Schedule()
 
     @classmethod
     @singleton 
