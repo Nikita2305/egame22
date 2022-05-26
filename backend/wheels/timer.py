@@ -45,7 +45,9 @@ class Timer:
 
         self.mutex_.acquire()
         if not self.stopped_:
+            backend.model.Model.AcquireLock()
             backend.model.Model.ScheduleRoutine(self_routine, is_deferred=False)
+            backend.model.Model.ReleaseLock(schedule_subscriptions=False)
         self.mutex_.release()
             
     def Add(self, routine):
