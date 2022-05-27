@@ -85,6 +85,7 @@ def ChangeCounter(routine):
 class Test2_StressModel (unittest.TestCase):
 
     def setUp(self):
+        time.sleep(0.1)
         Model.instance_ = None
         Model.GetInstance().graph_ = CounterGraph()
         Model.Run()
@@ -115,14 +116,14 @@ class Test2_StressModel (unittest.TestCase):
 
     def test2_locking_costs(self):
         expected_time = 1
-        THREADS = 10000
+        THREADS = 1000
         ITER = 100
         expected_ans = THREADS
 
-        for i in range(THREADS):
-            Model.AcquireLock()
+        Model.AcquireLock()
+        for i in range(THREADS): 
             Model.ScheduleRoutine(Routine(ChangeCounter))
-            Model.ReleaseLock()
+        Model.ReleaseLock()
 
         ok = False
         for i in range(ITER):
@@ -136,6 +137,23 @@ class Test2_StressModel (unittest.TestCase):
 
         if not ok:
             self.assertTrue(False)
+
+    def test3_time_management(self):
+        expected_time = 2
+        THREADS = 1000 # Not more than 1000
+        expected_ans = THREADS
+
+        import random
+        Model.AcquireLock()
+        for i in range(THREADS): 
+            Model.ScheduleRoutine(Routine(ChangeCounter, random.random() * expected_time))
+        Model.ReleaseLock()
+
+        time.sleep(expected_time + 0.2)
+        Model.AcquireLock()
+        ans = Model.GetGraph().Get()
+        Model.ReleaseLock()
+        self.assertEqual(expected_ans, ans)
 
 if __name__ == '__main__':
     unittest.main()

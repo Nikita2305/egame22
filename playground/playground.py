@@ -19,7 +19,7 @@ class GraphChangedCallback (Executable):
     def __init__(self): 
         super().__init__()
 
-    def __call__(self, nan):
+    def __call__(self):
         print(f"New name: {Model.GetGraph().name_}")
 
 

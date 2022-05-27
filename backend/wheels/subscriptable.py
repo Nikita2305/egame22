@@ -1,19 +1,28 @@
 from functools import wraps
 from backend.wheels.utils import ObjectCounter
+import threading 
 
 class Subscriptable:
     
     def __init__(self):
         self.changed_ = False
+        self.mutex_ = threading.Lock()
 
     def Mark(self):
+        self.mutex_.acquire()
         self.changed_ = True
+        self.mutex_.release()
 
     def Unmark(self):
+        self.mutex_.acquire()
         self.changed_ = False
+        self.mutex_.release()
 
     def IsMarked(self):
-        return self.changed_
+        self.mutex_.acquire()
+        is_changed = self.changed_
+        self.mutex_.release()
+        return is_changed
 
 def notifier(func):
     @wraps(func)
@@ -28,12 +37,17 @@ class Subscription (ObjectCounter):
     def __init__(self, subscriptable, executable):
         self.subscriptable_ = subscriptable
         self.executable_ = executable
+        self.mutex_ = threading.Lock()
         super().__init__()
 
-    def IsActive(self):
-        return self.subscriptable_.IsMarked()
-
-    def OneShotExecute(self):
+    def InactivateSubject(self):
         self.subscriptable_.Unmark()
-        self.executable_(None)
+
+    def IsActive(self): 
+        return self.subscriptable_.IsMarked() 
+
+    def Execute(self):
+        self.mutex_.acquire()
+        self.executable_()
+        self.mutex_.release()
 

@@ -13,13 +13,10 @@ class Timer:
         self.stopped_ = False
         self.mutex_ = threading.Lock()
 
-    def GetStep(self):
-        return self.step_
-
     def Run(self):
         self.time_ = time.time()
         backend.model.Model.AcquireLock()
-        backend.model.Model.ScheduleRoutine(Routine(self.Loop), is_deferred=False)
+        backend.model.Model.ScheduleRoutine(Routine(self.Loop))
         backend.model.Model.ReleaseLock(schedule_subscriptions=False)
 
     def Stop(self):
@@ -29,29 +26,27 @@ class Timer:
 
     def Loop(self, self_routine):
         time.sleep(self.step_)
-        self.time_ += self.step_ 
-        ex_routines = []
-        new_routines = []
+        self.time_ += self.step_
 
+        self.mutex_.acquire() 
+        backend.model.Model.AcquireLock()
+        backend.model.Model.ScheduleRoutine(Routine(self.ScheduleExpired))
+        if not self.stopped_:
+            backend.model.Model.ScheduleRoutine(self_routine)
+        backend.model.Model.ReleaseLock(schedule_subscriptions=False)
+        self.mutex_.release()
+            
+    def ScheduleExpired(self, self_routine):
+        new_routines = []
         self.mutex_.acquire()
         for routine, add_time in self.routines_:
             if (self.time_ - add_time >= routine.GetSleepTime()):
-                ex_routines += [routine]
+                routine.Schedule()
             else:
                 new_routines += [(routine, add_time)]
         self.routines_ = new_routines 
-        self.mutex_.release()
+        self.mutex_.release()        
 
-        for routine in ex_routines:
-            routine.Schedule()
-
-        self.mutex_.acquire()
-        if not self.stopped_:
-            backend.model.Model.AcquireLock()
-            backend.model.Model.ScheduleRoutine(self_routine, is_deferred=False)
-            backend.model.Model.ReleaseLock(schedule_subscriptions=False)
-        self.mutex_.release()
-            
     def Add(self, routine):
         self.mutex_.acquire()
         self.routines_ += [(routine, self.time_)]

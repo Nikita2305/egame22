@@ -3,6 +3,9 @@ from backend.routine import Executable
 import pickle
 
 class Dumper (Executable):
+    """
+    Потенциально устарело
+    """
     
     def __init__(self, filename):
         self.filename_ = filename

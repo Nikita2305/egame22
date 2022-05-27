@@ -82,12 +82,23 @@ class Model:
 
     @classmethod
     @singleton 
-    def ScheduleRoutine(self, routine, is_deferred=True):
+    def ScheduleRoutine(self, routine):
         self.routines_.append(routine)
-        if is_deferred:
+        if routine.IsDeferred():
             routine.ScheduleDefferedExecution() # with Timer
         else:
             routine.Schedule()
+
+    @classmethod
+    @singleton 
+    def EraseRoutine(self, routine): 
+        ret = False
+        for i, s in enumerate(self.routines_):
+            if (s.IsEqual(routine)):
+                self.routines_.pop(i)
+                ret = True
+                break
+        return ret
 
     @classmethod
     @singleton 
@@ -97,31 +108,26 @@ class Model:
     @classmethod
     @singleton 
     def ReleaseLock(self, schedule_subscriptions=True): 
-        self.mutex_.release()
         if (schedule_subscriptions):
             self.ScheduleRoutine(Routine(self.ExecuteSubscriptions_)) 
-
-    @classmethod
-    @singleton 
-    def EraseRoutine_(self, routine): 
-        ret = False
-        for i, s in enumerate(self.routines_):
-            if (s.IsEqual(routine)):
-                self.routines_.pop(i)
-                ret = True
-                break
-        return ret
-
-    def ExecuteSubscriptions_(self, nan):
-        while (self.ExecuteSingleSubscription_()):
-            pass
+        self.mutex_.release()
     
-    def ExecuteSingleSubscription_(self):
+    def ExecuteSubscriptions_(self, routine):
+        subscriptions_to_execute = []
+
         self.AcquireLock()
-        subs = self.subscriptions_
+        for sub in self.subscriptions_:
+            if (sub.IsActive()):
+                subscriptions_to_execute += [sub]
+        for sub in self.subscriptions_:
+            sub.InactivateSubject()
         self.ReleaseLock(schedule_subscriptions=False)
-        for subscription in subs:
-            if (subscription.IsActive()):
-                subscription.OneShotExecute()
-                return True
-        return False
+
+        if (len(subscriptions_to_execute) == 0):
+            return
+        for sub in subscriptions_to_execute:
+            sub.Execute()
+
+        Model.AcquireLock()
+        self.ScheduleRoutine(routine)
+        Model.ReleaseLock(schedule_subscriptions=False)

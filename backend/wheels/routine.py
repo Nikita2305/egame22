@@ -14,7 +14,7 @@ class Executable:
 
 class Routine (ObjectCounter):
     
-    def __init__(self, executable, sleeptime=0):
+    def __init__(self, executable, sleeptime=None):
         self.scheduler_ = ThreadScheduler()
         self.executable_ = executable
         self.sleeptime_ = sleeptime
@@ -27,11 +27,14 @@ class Routine (ObjectCounter):
     def Execute(self): 
         self.executable_(self)
         backend.model.Model.AcquireLock()
-        backend.model.Model.EraseRoutine_(self) # Erase at most one of several possible equal Routines
+        backend.model.Model.EraseRoutine(self) # Erase at most one of several possible equal Routines
         backend.model.Model.ReleaseLock(schedule_subscriptions=False)
 
     def Schedule(self):
         self.scheduler_.Schedule(self.Execute)
-    
+   
+    def IsDeferred(self):
+        return self.sleeptime_ is not None
+ 
     def ScheduleDefferedExecution(self):
         backend.model.Model.GetTimer().Add(self)
