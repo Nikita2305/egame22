@@ -2,6 +2,7 @@ import backend.model
 from backend.wheels.utils import ObjectCounter
 from backend.wheels.schedulers import ThreadScheduler
 import time
+import threading
 
 class Executable:
     
@@ -18,6 +19,7 @@ class Routine (ObjectCounter):
         self.scheduler_ = ThreadScheduler()
         self.executable_ = executable
         self.sleeptime_ = sleeptime
+        self.mutex_ = threading.Lock()
         self.execution_started_ = None
         super().__init__()
 
@@ -25,7 +27,9 @@ class Routine (ObjectCounter):
         return self.sleeptime_
 
     def Execute(self): 
+        self.mutex_.acquire()
         self.executable_(self)
+        self.mutex_.release()
         backend.model.Model.AcquireLock()
         backend.model.Model.EraseRoutine(self) # Erase at most one of several possible equal Routines
         backend.model.Model.ReleaseLock(schedule_subscriptions=False)
