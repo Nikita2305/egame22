@@ -106,7 +106,7 @@ class Test2_StressModel (unittest.TestCase):
         Model.ReleaseLock()
         self.assertEqual(expected_ans, ans)
 
-    def test4_stress_subscriptions_total_calls(self):
+    def test4_stress_subscriptions_called_once(self):
         expected_time = 1
         THREADS = 10
         subs = 5
@@ -123,7 +123,7 @@ class Test2_StressModel (unittest.TestCase):
         
         time.sleep(expected_time)
         for callback in callbacks:
-            self.assertEqual(THREADS, callback.value)
+            self.assertNotEqual(callback.value, 0)
 
     def test5_stress_subscriptions_final_value(self):
         expected_time = 1

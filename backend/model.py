@@ -123,11 +123,6 @@ class Model:
             sub.InactivateSubject()
         self.ReleaseLock(schedule_subscriptions=False)
 
-        if (len(subscriptions_to_execute) == 0):
-            return
         for sub in subscriptions_to_execute:
             sub.Execute()
 
-        Model.AcquireLock()
-        self.ScheduleRoutine(routine)
-        Model.ReleaseLock(schedule_subscriptions=False)
