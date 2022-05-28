@@ -4,66 +4,6 @@ from backend.wheels.subscriptable import Subscription, Subscriptable, notifier
 import time
 import unittest
 
-class NamedGraph (Subscriptable):
-    
-    def __init__(self):
-        self.name_ = ""
-        super().__init__() 
-    
-    @notifier
-    def SetName(self, name):
-        self.name_ = name
-
-class ChangeNameRoutine (Executable):
-
-    def __init__(self, new_name):
-        self.new_name = new_name
-        super().__init__()
-
-    def __call__(self, routine):
-        Model.AcquireLock()
-        Model.GetGraph().name_ = self.new_name
-        Model.ReleaseLock() 
-
-class Test1_UnitModel (unittest.TestCase):
-
-    def setUp(self):
-        Model.instance_ = None
-        Model.GetInstance().graph_ = NamedGraph()
-        Model.Run()
-
-    def tearDown(self):
-        Model.GetTimer().Stop()
-
-    def test1_simple_routine(self):
-        import time
-        start = time.time()
-        sleep_time = 1
-        expected_time = sleep_time + 0.5
-        ITER = 100
-        old_name = Model.GetGraph().name_
-        expected_name = "user defined name"
-
-        Model.AcquireLock()
-        Model.ScheduleRoutine(Routine(ChangeNameRoutine(expected_name), sleep_time))
-        Model.ReleaseLock()
-
-        ok = False
-        name = None
-        for i in range(100):
-            time.sleep(expected_time / ITER)
-            Model.AcquireLock()
-            name = Model.GetGraph().name_
-            Model.ReleaseLock()
-            if (name != old_name):
-                ok = True
-                break
-        if (ok): 
-            self.assertEqual(expected_name, name)
-            self.assertTrue(time.time() - start < expected_time)
-        else:
-            self.assertTrue(False)         
-
 class CounterGraph (Subscriptable):
 
     def __init__(self):
@@ -81,6 +21,24 @@ def ChangeCounter(routine):
     Model.AcquireLock()
     Model.GetGraph().Increase(1)
     Model.ReleaseLock()
+
+class IncreasingCallback (Executable):
+
+    def __init__(self):
+        self.value = 0
+
+    def __call__(self):
+        self.value += 1
+
+class ObtainingCallback (Executable):
+    
+    def __init__(self):
+        self.value = 0
+
+    def __call__(self):
+        Model.AcquireLock()
+        self.value = Model.GetGraph().Get()
+        Model.ReleaseLock()
 
 class Test2_StressModel (unittest.TestCase):
 
@@ -102,12 +60,10 @@ class Test2_StressModel (unittest.TestCase):
         expected_time = 1
         THREADS = 1000
         expected_ans = THREADS
-
         for i in range(THREADS):
             Model.AcquireLock()
             Model.ScheduleRoutine(Routine(ChangeCounter))
             Model.ReleaseLock()
-
         time.sleep(expected_time)
         Model.AcquireLock()
         ans = Model.GetGraph().Get()
@@ -119,12 +75,10 @@ class Test2_StressModel (unittest.TestCase):
         THREADS = 1000
         ITER = 100
         expected_ans = THREADS
-
         Model.AcquireLock()
-        for i in range(THREADS): 
+        for i in range(THREADS):
             Model.ScheduleRoutine(Routine(ChangeCounter))
         Model.ReleaseLock()
-
         ok = False
         for i in range(ITER):
             time.sleep(expected_time / ITER)
@@ -134,7 +88,6 @@ class Test2_StressModel (unittest.TestCase):
             if (expected_ans == ans):
                 ok = True
                 break
-
         if not ok:
             self.assertTrue(False)
 
@@ -142,18 +95,54 @@ class Test2_StressModel (unittest.TestCase):
         expected_time = 2
         THREADS = 1000 # Not more than 1000
         expected_ans = THREADS
-
         import random
         Model.AcquireLock()
-        for i in range(THREADS): 
+        for i in range(THREADS):
             Model.ScheduleRoutine(Routine(ChangeCounter, random.random() * expected_time))
         Model.ReleaseLock()
-
         time.sleep(expected_time + 0.2)
         Model.AcquireLock()
         ans = Model.GetGraph().Get()
         Model.ReleaseLock()
         self.assertEqual(expected_ans, ans)
+
+    def test4_stress_subscriptions_total_calls(self):
+        expected_time = 1
+        THREADS = 10
+        subs = 5
+        expected_ans = THREADS
+        callbacks = []        
+
+        Model.AcquireLock()
+        for i in range(subs):
+            callbacks += [IncreasingCallback()]
+            Model.AddSubscription(Subscription(Model.GetGraph(), callbacks[-1]))
+        for i in range(THREADS):
+            Model.ScheduleRoutine(Routine(ChangeCounter, 0))
+        Model.ReleaseLock()
+        
+        time.sleep(expected_time)
+        for callback in callbacks:
+            self.assertEqual(THREADS, callback.value)
+
+    def test5_stress_subscriptions_final_value(self):
+        expected_time = 1
+        THREADS = 10
+        subs = 5
+        expected_ans = THREADS
+        callbacks = []        
+
+        Model.AcquireLock()
+        for i in range(subs):
+            callbacks += [ObtainingCallback()]
+            Model.AddSubscription(Subscription(Model.GetGraph(), callbacks[-1]))
+        for i in range(THREADS):
+            Model.ScheduleRoutine(Routine(ChangeCounter, 0))
+        Model.ReleaseLock()
+        
+        time.sleep(expected_time)
+        for callback in callbacks:
+            self.assertEqual(THREADS, callback.value)
 
 if __name__ == '__main__':
     unittest.main()
