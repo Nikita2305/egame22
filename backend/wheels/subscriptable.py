@@ -1,6 +1,7 @@
 from functools import wraps
 from backend.wheels.utils import ObjectCounter
-import threading 
+from backend.wheels.routine import Routine
+import threading
 
 class Subscriptable:
     
@@ -36,8 +37,7 @@ class Subscription (ObjectCounter):
     
     def __init__(self, subscriptable, executable):
         self.subscriptable_ = subscriptable
-        self.executable_ = executable
-        self.mutex_ = threading.Lock()
+        self.routine_ = Routine(executable)
         super().__init__()
 
     def InactivateSubject(self):
@@ -46,8 +46,5 @@ class Subscription (ObjectCounter):
     def IsActive(self): 
         return self.subscriptable_.IsMarked() 
 
-    def Execute(self):
-        self.mutex_.acquire()
-        self.executable_()
-        self.mutex_.release()
-
+    def GetRoutine(self):
+        return self.routine_

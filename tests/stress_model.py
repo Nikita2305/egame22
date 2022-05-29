@@ -27,7 +27,7 @@ class IncreasingCallback (Executable):
     def __init__(self):
         self.value = 0
 
-    def __call__(self):
+    def __call__(self, routine):
         self.value += 1
 
 class ObtainingCallback (Executable):
@@ -35,7 +35,7 @@ class ObtainingCallback (Executable):
     def __init__(self):
         self.value = 0
 
-    def __call__(self):
+    def __call__(self, routine):
         Model.AcquireLock()
         self.value = Model.GetGraph().Get()
         Model.ReleaseLock()

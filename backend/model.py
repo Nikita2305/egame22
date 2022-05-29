@@ -109,20 +109,18 @@ class Model:
     @singleton 
     def ReleaseLock(self, schedule_subscriptions=True): 
         if (schedule_subscriptions):
-            self.ScheduleRoutine(Routine(self.ExecuteSubscriptions_)) 
+            self.ScheduleSubscriptions()
         self.mutex_.release()
     
-    def ExecuteSubscriptions_(self, routine):
+    def ScheduleSubscriptions(self):
         subscriptions_to_execute = []
 
-        self.AcquireLock()
         for sub in self.subscriptions_:
             if (sub.IsActive()):
                 subscriptions_to_execute += [sub]
         for sub in self.subscriptions_:
             sub.InactivateSubject()
-        self.ReleaseLock(schedule_subscriptions=False)
 
         for sub in subscriptions_to_execute:
-            sub.Execute()
+            sub.GetRoutine().Schedule()
 

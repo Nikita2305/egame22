@@ -30,7 +30,7 @@ class NameChangedCallback (Executable):
     def __init__(self, lst):
         self.lst_ = lst
 
-    def __call__(self):
+    def __call__(self, routine):
         self.lst_.append(1)
 
 class Test1_UnitModel (unittest.TestCase):
