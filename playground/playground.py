@@ -50,4 +50,17 @@ print("wait for it")
 
 time.sleep(2)
 print("bye")
+
+def helloworld(routine):
+    print("Hello world!")
+
+#timer example
+Model.AcquireLock()
+r = Routine(helloworld, 5)
+Model.ScheduleRoutine(r)
+Model.ReleaseLock()
+while not r.executed_:
+    print(r.GetRemainingTime())
+    time.sleep(1)
+
 Model.GetTimer().Stop()

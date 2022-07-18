@@ -72,13 +72,11 @@ class Model:
     @classmethod
     @singleton 
     def EraseSubscription(self, subscription):
-        ret = False
-        for i, s in enumerate(self.subscriptions_):
-            if (s.IsEqual(subscription)):
-                self.subscriptions_.pop(i)
-                ret = True
-                break
-        return ret
+        try:
+            self.subscriptions_.remove(subscription)
+            return True
+        except ValueError:
+            return False
 
     @classmethod
     @singleton 
@@ -92,13 +90,11 @@ class Model:
     @classmethod
     @singleton 
     def EraseRoutine(self, routine): 
-        ret = False
-        for i, s in enumerate(self.routines_):
-            if (s.IsEqual(routine)):
-                self.routines_.pop(i)
-                ret = True
-                break
-        return ret
+        try:
+            self.routines_.remove(routine)
+            return True
+        except ValueError:
+            return False
 
     @classmethod
     @singleton 
