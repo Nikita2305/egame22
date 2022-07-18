@@ -1,12 +1,25 @@
 import threading
-from backend.graph import Graph
-from backend.market import Market
-from backend.newsfeed import NewsFeed
 from backend.wheels.subscriptable import Subscription
 from backend.wheels.routine import Routine
 from backend.wheels.schedulers import ThreadScheduler
 from backend.wheels.timer import Timer
 from functools import wraps
+from backend.wheels.subscriptable import Subscriptable
+
+class GraphStub (Subscriptable):
+    
+    def __init__(self):
+        super().__init__() 
+        
+class MarketStub (Subscriptable):
+    
+    def __init__(self):
+        super().__init__() 
+        
+class NewsFeedStub (Subscriptable):
+
+    def __init__(self):
+        super().__init__()
 
 def singleton(func):
     @wraps(func)
@@ -25,9 +38,9 @@ class Model:
     instance_ = None
     
     def __init__(self):
-        self.graph_ = Graph()
-        self.market_ = Market()
-        self.news_feed_ = NewsFeed()
+        self.graph_ = GraphStub()
+        self.market_ = MarketStub()
+        self.news_feed_ = NewsFeedStub()
         self.mutex_ = threading.Lock()
         self.subscriptions_ = []
         self.routines_ = []

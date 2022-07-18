@@ -4,50 +4,46 @@ from backend.wheels.subscriptable import Subscription, Subscriptable, notifier
 from backend.wheels.schedulers import ThreadScheduler
 import time
 
-class OtherGraph (Subscriptable):
-    
-    def __init__(self):
-        self.name_ = ""
-        super().__init__() 
-    
-    @notifier
-    def SetName(self, name):
-        self.name_ = name
-
-class GraphChangedCallback (Executable):
-    
-    def __init__(self): 
-        super().__init__()
-
-    def __call__(self, routine):
-        print(f"New name: {Model.GetGraph().name_}")
-
-
-class ChangeNameRoutine (Executable):
-
-    def __init__(self, new_name, time):
-        self.new_name = new_name
-        self.time = time   
-        super().__init__()
-
-    def __call__(self, routine):
-        Model.AcquireLock()        
-        Model.GetGraph().SetName(self.new_name)
-        print("Expected 1s: ", time.time() - self.time)
-        Model.ReleaseLock() 
-
 # Setup:
-Model.GetInstance().graph_ = OtherGraph()
+
+from backend.market import Market, BaseTrend
+
+def mcb(routine):
+    print("market changed")
+
+Model.GetInstance()
+Model.GetInstance().market_ = Market(10, {
+    "BTC" : BaseTrend(10000,1000), 
+    "LTC" : BaseTrend(100,10), 
+    "SGC" : BaseTrend(1000,500), 
+})
 Model.Run() # Spawns another thread
 Model.AcquireLock()
-Model.AddSubscription(Subscription(Model.GetGraph(), GraphChangedCallback()))
-Model.ScheduleRoutine(Routine(ChangeNameRoutine("user defined name", time.time()), 1))
+Model.AddSubscription(Subscription(Model.GetMarket(), mcb))
 Model.ReleaseLock()
-print("wait for it")
 
-time.sleep(2)
-print("wait for it")
+time.sleep(16)
+print(Model.GetMarket().time_)
 
-time.sleep(2)
+print("BTC ",Model.GetMarket().GetHistory("BTC"))
+print("LTC ",Model.GetMarket().GetHistory("LTC"))
+print("SGC ",Model.GetMarket().GetHistory("SGC"))
+
+print("BTC ",Model.GetMarket().GetPredict("BTC",10))
+print("LTC ",Model.GetMarket().GetPredict("LTC",10))
+print("SGC ",Model.GetMarket().GetPredict("SGC",10))
+
+time.sleep(16)
+
+print(Model.GetMarket().time_)
+
+print("BTC ",Model.GetMarket().GetHistory("BTC"))
+print("LTC ",Model.GetMarket().GetHistory("LTC"))
+print("SGC ",Model.GetMarket().GetHistory("SGC"))
+
+print("BTC ",Model.GetMarket().GetPredict("BTC",15))
+print("LTC ",Model.GetMarket().GetPredict("LTC",15))
+print("SGC ",Model.GetMarket().GetPredict("SGC",15))
+
 print("bye")
 Model.GetTimer().Stop()
