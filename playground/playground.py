@@ -46,4 +46,17 @@ print("LTC ",Model.GetMarket().GetPredict("LTC",15))
 print("SGC ",Model.GetMarket().GetPredict("SGC",15))
 
 print("bye")
+
+def helloworld(routine):
+    print("Hello world!")
+
+#timer example
+Model.AcquireLock()
+r = Routine(helloworld, 5)
+Model.ScheduleRoutine(r)
+Model.ReleaseLock()
+while not r.executed_:
+    print(r.GetRemainingTime())
+    time.sleep(1)
+
 Model.GetTimer().Stop()
