@@ -11,6 +11,7 @@ import time
 # Setup:
 
 from backend.market import Market, BaseTrend
+from backend.teams import TeamsManager
 
 def mcb(routine):
     print("market changed")
@@ -24,6 +25,12 @@ Model.GetInstance().market_ = Market(10, {
     "LTC" : BaseTrend(100,10), 
     "SGC" : BaseTrend(1000,500), 
 })
+
+Model.GetInstance().teams_ = TeamsManager(["BTC","LTC","SGC"])
+Model.GetTeams().CreateTeam("A")
+Model.GetTeams().CreateTeam("B")
+Model.GetTeams().CreateTeam("C")
+
 Model.Run() # Spawns another thread
 Model.AcquireLock()
 Model.AddSubscription(Subscription(Model.GetMarket(), mcb))
@@ -66,10 +73,27 @@ while not r.executed_:
     print(r.GetRemainingTime())
     time.sleep(1)
 
+def money(r,name):
+    print(name,"has",Model.GetTeams().GetTeam(name).GetCryptoMoney("LTC"))
+
+Model.AcquireLock()
+Model.AddSubscription(Subscription(Model.GetTeams().GetTeam("A"), lambda r: money(r,"A")))
+Model.AddSubscription(Subscription(Model.GetTeams().GetTeam("B"), lambda r: money(r,"B")))
+Model.AddSubscription(Subscription(Model.GetTeams().GetTeam("C"), lambda r: money(r,"C")))
+Model.ReleaseLock()
+
 event_manager = EventManager()
 
 event_manager.LoadEvent("BTChype")
 event_manager.LaunchEvent("BTChype")
+
+time.sleep(5)
+Model.AcquireLock()
+Model.GetTeams().GetTeam("A").AddCryptoMoney("LTC", 10)
+Model.GetTeams().GetTeam("B").AddCryptoMoney("LTC", 100)
+Model.ReleaseLock()
+time.sleep(5)
+Model.GetTeams().GetTeam("B").AddCryptoMoney("LTC", -80)
 
 time.sleep(600)
 

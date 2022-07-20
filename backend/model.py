@@ -7,17 +7,18 @@ from functools import wraps
 from backend.wheels.subscriptable import Subscriptable
 
 class GraphStub (Subscriptable):
-    
+    def __init__(self):
+        super().__init__()
+
+class TeamsStub (Subscriptable):
     def __init__(self):
         super().__init__() 
         
 class MarketStub (Subscriptable):
-    
     def __init__(self):
         super().__init__() 
         
 class NewsFeedStub (Subscriptable):
-
     def __init__(self):
         super().__init__()
 
@@ -50,6 +51,7 @@ class Model:
     def __init__(self):
         self.graph_ = GraphStub()
         self.market_ = MarketStub()
+        self.teams_ = TeamsStub()
         self.news_feed_ = NewsFeedStub()
         self.mutex_ = threading.Lock()
         self.subscriptions_ = []
@@ -77,6 +79,11 @@ class Model:
     @singleton 
     def GetGraph(self):
         return self.graph_
+    
+    @classmethod
+    @singleton 
+    def GetTeams(self):
+        return self.teams_
 
     @classmethod
     @singleton 

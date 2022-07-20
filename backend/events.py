@@ -108,6 +108,7 @@ class Coincidence (Condition):
     
 class StageCounter (Subscriptable):
     def __init__(self):
+        super().__init__()
         self.stage_ = 0
     def GetStage(self):
         return self.stage_
