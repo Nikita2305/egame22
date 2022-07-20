@@ -27,6 +27,16 @@ def singleton(func):
         return func(cls.GetInstance(), *args, **kwargs)
     return wrapper   
 
+def notifier_with_model_lock(func):
+    @wraps(func)
+    def wrapper(self, *args, **kwargs):
+        Model.AcquireLock()
+        ret = func(self, *args, **kwargs)
+        self.Mark()
+        Model.ReleaseLock()
+        return ret
+    return wrapper
+
 class Model:
     """
     - Singleton
@@ -45,6 +55,7 @@ class Model:
         self.subscriptions_ = []
         self.routines_ = []
         self.timer_ = Timer()
+        self.lock_acquired_ = False
          
     @classmethod
     def GetInstance(cls):
@@ -113,12 +124,16 @@ class Model:
     @singleton 
     def AcquireLock(self):
         self.mutex_.acquire()
+        if self.lock_acquired_:
+            print("Warning: GML has already been acquired")
+        self.lock_acquired_ = True
 
     @classmethod
     @singleton 
     def ReleaseLock(self, schedule_subscriptions=True): 
         if (schedule_subscriptions):
             self.ScheduleSubscriptions()
+        self.lock_acquired_ = False
         self.mutex_.release()
     
     def ScheduleSubscriptions(self):
@@ -131,5 +146,5 @@ class Model:
             sub.InactivateSubject()
 
         for sub in subscriptions_to_execute:
-            sub.GetRoutine().Schedule()
+            self.ScheduleRoutine(sub.GetRoutine())
 

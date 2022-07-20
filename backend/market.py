@@ -1,5 +1,5 @@
 from backend.wheels.subscriptable import Subscriptable, notifier
-from backend.model import Model
+from backend.model import Model, notifier_with_model_lock
 from backend.wheels.routine import Executable, Routine
 from backend.wheels.subscriptable import Subscription, Subscriptable, notifier
 import time
@@ -95,15 +95,13 @@ class Market (Subscriptable, Executable):
             self.markets_[cur] = SingleMarket(currencies_bases_dict[cur])
         self.time_ = 0
         Model.ScheduleRoutine(Routine(self, self.tick_time_))
-        
-    @notifier
+    
+    @notifier_with_model_lock
     def __call__(self, routine):
-        Model.AcquireLock()        
         self.time_ += 1
         for cur in self.markets_:
             self.markets_[cur].Tick(self.time_)
         Model.ScheduleRoutine(routine)
-        Model.ReleaseLock()
     
     @notifier
     def AddFunction(self, cur, f):

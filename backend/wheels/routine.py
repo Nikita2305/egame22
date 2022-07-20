@@ -62,3 +62,12 @@ class Routine:
     def ScheduleDefferedExecution(self):
         self.executed = False;
         backend.model.Model.GetTimer().Add(self)
+
+def RepeatedRoutine(executable, period):
+    def wrapped(r):
+        executable(r)
+        Model.AcquireLock()
+        Model.ScheduleRoutine(r)
+        Model.ReleaseLock()
+    r = Routine(wrapped, period)
+    return r
