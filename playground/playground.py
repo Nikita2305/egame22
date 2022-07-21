@@ -2,48 +2,74 @@ from backend.model import Model
 from backend.wheels.routine import Executable, Routine
 from backend.wheels.subscriptable import Subscription, Subscriptable, notifier
 from backend.wheels.schedulers import ThreadScheduler
+from backend.graph import Graph
+from backend.server import Server
+from backend.teams import Team, TeamsManager
+from backend.war import WarManager, War
 import time
 
-# Setup:
 
-from backend.market import Market, BaseTrend
+class GraphChangedCallback(Executable):
 
-def mcb(routine):
-    print("market changed")
+    def __init__(self):
+        super().__init__()
 
-Model.GetInstance()
-Model.GetInstance().market_ = Market(10, {
-    "BTC" : BaseTrend(10000,1000), 
-    "LTC" : BaseTrend(100,10), 
-    "SGC" : BaseTrend(1000,500), 
-})
-Model.Run() # Spawns another thread
+    def __call__(self, routine):
+        Model.GetGraph().print()
+
+
+class ChangeNameRoutine(Executable):
+
+    def __init__(self, new_name, time):
+        self.new_name = new_name
+        self.time = time
+        super().__init__()
+
+    def __call__(self, routine):
+        Model.AcquireLock()
+        print("Expected 1s: ", time.time() - self.time)
+        Model.ReleaseLock()
+
+    # Setup:
+
+
+tm = TeamsManager([])
+Model.GetInstance().graph_ = Graph(1, tm)
+servers = []
+for i in range(5):
+    servers.append(Server(Model.GetGraph(), i + 1000))
+
+for i in range(5):
+    servers.append(Server(Model.GetGraph(), i + 1000))
+    Model.GetGraph().add_edges(servers[i], [servers[(i+1) % 5]])
+
+tm.CreateTeam(1, "A")
+tm.CreateTeam(2, "B")
+
+servers[0].set_owner(tm.GetTeam(1))
+servers[1].set_owner(tm.GetTeam(1))
+servers[2].set_owner(tm.GetTeam(1))
+servers[3].set_owner(tm.GetTeam(2))
+servers[4].set_owner(tm.GetTeam(2))
+
+servers[1].set_type("support")
+servers[0].set_type("SSH")
+
+
+Model.Run()  # Spawns another thread
 Model.AcquireLock()
-Model.AddSubscription(Subscription(Model.GetMarket(), mcb))
+Model.AddSubscription(Subscription(Model.GetGraph(), GraphChangedCallback()))
+Model.ScheduleRoutine(Routine(ChangeNameRoutine("g", time.time()), 1))
 Model.ReleaseLock()
 
-time.sleep(16)
-print(Model.GetMarket().time_)
-
-print("BTC ",Model.GetMarket().GetHistory("BTC"))
-print("LTC ",Model.GetMarket().GetHistory("LTC"))
-print("SGC ",Model.GetMarket().GetHistory("SGC"))
-
-print("BTC ",Model.GetMarket().GetPredict("BTC",10))
-print("LTC ",Model.GetMarket().GetPredict("LTC",10))
-print("SGC ",Model.GetMarket().GetPredict("SGC",10))
-
-time.sleep(16)
-
-print(Model.GetMarket().time_)
-
-print("BTC ",Model.GetMarket().GetHistory("BTC"))
-print("LTC ",Model.GetMarket().GetHistory("LTC"))
-print("SGC ",Model.GetMarket().GetHistory("SGC"))
-
-print("BTC ",Model.GetMarket().GetPredict("BTC",15))
-print("LTC ",Model.GetMarket().GetPredict("LTC",15))
-print("SGC ",Model.GetMarket().GetPredict("SGC",15))
-
-print("bye")
-Model.GetTimer().Stop()
+# TODO: остановка войны раньше её начала
+wm =  WarManager(Model.GetGraph().get_vertexes(), 5)
+Model.AcquireLock()
+wm.start_war(servers[2], servers[3])
+Model.ReleaseLock()
+w = wm.get_war(servers[2], servers[3])
+print("------------------------------------------------")
+print(w)
+Model.AcquireLock()
+wm.stop_war(w)
+Model.ReleaseLock()

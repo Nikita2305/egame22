@@ -33,7 +33,7 @@ def notifier(func):
         return ret
     return wrapper
 
-class Subscription (ObjectCounter):
+class Subscription:
     
     def __init__(self, subscriptable, executable):
         self.subscriptable_ = subscriptable
