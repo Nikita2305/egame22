@@ -13,8 +13,10 @@ class Timer:
         self.stopped_ = False
         self.mutex_ = threading.Lock()
 
+    def GetTime(self):
+        return self.time_
+
     def Run(self):
-        self.time_ = time.time()
         backend.model.Model.AcquireLock()
         backend.model.Model.ScheduleRoutine(Routine(self.Loop))
         backend.model.Model.ReleaseLock(schedule_subscriptions=False)
@@ -26,9 +28,8 @@ class Timer:
 
     def Loop(self, self_routine):
         time.sleep(self.step_)
-        self.time_ += self.step_
-
         self.mutex_.acquire() 
+        self.time_ += self.step_
         backend.model.Model.AcquireLock()
         backend.model.Model.ScheduleRoutine(Routine(self.ScheduleExpired))
         if not self.stopped_:
@@ -39,15 +40,27 @@ class Timer:
     def ScheduleExpired(self, self_routine):
         new_routines = []
         self.mutex_.acquire()
-        for routine, add_time in self.routines_:
-            if (self.time_ - add_time >= routine.GetSleepTime()):
+        for routine in self.routines_:
+            if routine.GetRemainingTime() <= 0:
                 routine.Schedule()
             else:
-                new_routines += [(routine, add_time)]
+                new_routines.append(routine)
         self.routines_ = new_routines 
         self.mutex_.release()        
 
     def Add(self, routine):
         self.mutex_.acquire()
-        self.routines_ += [(routine, self.time_)]
+        routine.SetAddTime(self.time_)
+        self.routines_.append(routine)
         self.mutex_.release()
+
+    def Remove(self, routine):
+        self.mutex_.acquire()
+        routine.SetAddTime(None)
+        try:
+            self.routines_.remove(routine)
+            self.mutex_.release()
+            return True
+        except ValueError:
+            self.mutex_.release()
+            return False
