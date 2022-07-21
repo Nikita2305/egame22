@@ -93,7 +93,12 @@ Model.GetTeams().GetTeam("A").AddCryptoMoney("LTC", 10)
 Model.GetTeams().GetTeam("B").AddCryptoMoney("LTC", 100)
 Model.ReleaseLock()
 time.sleep(5)
-Model.GetTeams().GetTeam("B").AddCryptoMoney("LTC", -80)
+Model.GetTeams().GetTeam("B").AddCryptoMoney("LTC", -80,"test")
+time.sleep(5)
+print(Model.GetTeams().GetTeam("B").GetLog())
+print(Model.GetTeams().GetTeam("B").GetLog(reason="test"))
+print(Model.GetTeams().GetTeam("B").GetLog(subject="LTC"))
+print(Model.GetTeams().GetTeam("B").GetLog(reason="sss"))
 
 time.sleep(600)
 
