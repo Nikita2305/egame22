@@ -17,7 +17,7 @@ class Graph(Subscriptable, Executable):
         super().__init__()
         Model.ScheduleRoutine(Routine(self, self.__tick))
 
-    @notifier
+    @notifier_with_model_lock
     def __call__(self, routine):
         # TODO: нужно ли обнулять action, get for teammanager
         '''for token in self.__teams_manager.teams_.keys():

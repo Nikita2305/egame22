@@ -1,4 +1,4 @@
-from backend.model import Model
+from backend.model import Model, notifier_with_model_lock
 from backend.wheels.routine import Executable, Routine
 from backend.server import Server
 from backend.wheels.timer import Timer
@@ -18,7 +18,7 @@ class WarManager:
             self.__tick = tick
 
     def stop_war(self, war):
-        self.__war_routines[war].Execute()
+        Model.EraseRoutine(self.__war_routines[war])
         self.end_war(war)
 
     def end_war(self, war):
@@ -70,10 +70,8 @@ class War(Subscriptable, Executable):
     def get_attacker(self) -> Server:
         return self.__attacker
 
-    @notifier
+    @notifier_with_model_lock
     def __call__(self, routine: Routine):
-        Model.AcquireLock()
         if Model.GetGraph().attack(self.__attacker, self.__defender):
             self.__manager.shift_local_wars(self)
         self.__manager.end_war(self)
-        Model.ReleaseLock()

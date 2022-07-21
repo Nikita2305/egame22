@@ -105,7 +105,7 @@ class Server(Vertex):
         print(prefix + str(self))
         print(prefix + "    " + str(self.__id))
         print(prefix + "    " + self.__type)
-        print(prefix + "    " + self.__owner.GetName())
+        print(prefix + "    " + (self.__owner.GetName() if self.__owner is not None else "None"))
         print(prefix + "    " + str(self.__power))
         print(prefix + "    " + str(self.get_power_gift()))
         print(prefix + "    " + str(self.get_support_neighbours()))

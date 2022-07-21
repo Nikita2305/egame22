@@ -15,7 +15,7 @@ class GraphChangedCallback(Executable):
         super().__init__()
 
     def __call__(self, routine):
-        Model.GetGraph().print()
+        pass #Model.GetGraph().print()
 
 
 class ChangeNameRoutine(Executable):
@@ -55,12 +55,13 @@ servers[4].set_owner(tm.GetTeam(2))
 servers[1].set_type("support")
 servers[0].set_type("SSH")
 
-
 Model.Run()  # Spawns another thread
 Model.AcquireLock()
 Model.AddSubscription(Subscription(Model.GetGraph(), GraphChangedCallback()))
 Model.ScheduleRoutine(Routine(ChangeNameRoutine("g", time.time()), 1))
 Model.ReleaseLock()
+
+Model.GetGraph().print()
 
 # TODO: остановка войны раньше её начала
 wm =  WarManager(Model.GetGraph().get_vertexes(), 5)
@@ -70,6 +71,8 @@ Model.ReleaseLock()
 w = wm.get_war(servers[2], servers[3])
 print("------------------------------------------------")
 print(w)
-Model.AcquireLock()
-wm.stop_war(w)
-Model.ReleaseLock()
+
+time.sleep(20)
+Model.GetGraph().print()
+time.sleep(100)
+Model.GetTimer().Stop()
