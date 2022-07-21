@@ -1,4 +1,12 @@
 from backend.wheels.subscriptable import Subscriptable, notifier
+import backend.model
+
+class LogEntry:
+    def __init__(self, subject, reason, amount):
+        self.subject_ = subject
+        self.reason_ = reason
+        self.amount_ = amount
+        self.time_ = backend.model.Model.GetTimer().GetTime()
 
 class Team (Subscriptable):
     def __init__(self, token, name, currencies):
@@ -6,30 +14,34 @@ class Team (Subscriptable):
         self.name_ = name
         self.token_ = token
         self.cryptowallet_ = dict([(cur,0.) for cur in currencies])
+        self.log_ = []
         self.wallet_ = 0.
         self.actions_ = 0.
         
     def GetCryptoMoney(self, cur):
         return self.cryptowallet_[cur]
     @notifier
-    def AddCryptoMoney(self, cur, amount):
+    def AddCryptoMoney(self, cur, amount, reason="unknown"):
         self.cryptowallet_[cur] += amount
+        self.log_.append(LogEntry(cur,reason,amount))
     def AddCryptoMoneyCheck(self, cur, amount):
         return self.cryptowallet_[cur] + amount >= 0
     
     def GetMoney(self):
         return self.wallet_
     @notifier
-    def AddMoney(self, amount):
+    def AddMoney(self, amount, reason="unknown"):
         self.wallet_ += amount
+        self.log_.append(LogEntry("money",reason,amount))
     def AddMoneyCheck(self, amount):
         return self.wallet_ + amount >= 0
     
     def GetActions(self):
         return self.actions_
     @notifier
-    def AddActions(self, amount):
+    def AddActions(self, amount, reason="unknown"):
         self.actions_ += amount
+        self.log_.append(LogEntry("actions",reason,amount))
     def AddActionsCheck(self, amount):
         return self.actions_ + amount >= 0
     
@@ -38,6 +50,14 @@ class Team (Subscriptable):
     @notifier
     def SetName(self, name):
         self.name_ = name
+        
+    def GetLog(self, subject=None, reason=None):
+        ret = self.log_
+        if subject is not None:
+            ret = [x for x in ret if x.subject_ == subject]
+        if reason is not None:
+            ret = [x for x in ret if x.reason_ == reason]
+        return ret
 
 class TeamsManager:
     def __init__(self, currencies):

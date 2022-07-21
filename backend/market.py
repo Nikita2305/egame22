@@ -94,11 +94,13 @@ class Market (Subscriptable, Executable):
         for cur in currencies_bases_dict:
             self.markets_[cur] = SingleMarket(currencies_bases_dict[cur])
         self.time_ = 0
+        self.time_converter_ = [Model.GetTimer().GetTime()]
         Model.ScheduleRoutine(Routine(self, self.tick_time_))
     
     @notifier_with_model_lock
     def __call__(self, routine):
         self.time_ += 1
+        self.time_converter_.append(Model.GetTimer().GetTime())
         for cur in self.markets_:
             self.markets_[cur].Tick(self.time_)
         Model.ScheduleRoutine(routine)
@@ -119,6 +121,12 @@ class Market (Subscriptable, Executable):
     def AddBump(self, cur, start, peak, end, amplitude):
         f = BumpSpline(self.time_+start, 1., self.time_+peak, amplitude, self.time_+end, 1.)
         self.AddFunction(cur, f)
+        
+    def ConvertTime(self, time):
+        if time < len(self.time_converter_):
+            return self.time_converter_[time]
+        else:
+            return self.time_converter_[-1]+(time - self.time_)*self.tick_time_
 
 class BaseTrend:
     def __init__(self,start,sigma, seed=12345):
