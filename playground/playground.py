@@ -2,110 +2,77 @@ from backend.model import Model
 from backend.wheels.routine import Executable, Routine
 from backend.wheels.subscriptable import Subscription, Subscriptable, notifier
 from backend.wheels.schedulers import ThreadScheduler
-from backend.events import EventManager
-
-import backend.libevents.BTChype
-
+from backend.graph import Graph
+from backend.server import Server
+from backend.teams import Team, TeamsManager
+from backend.war import WarManager, War
 import time
 
-# Setup:
 
-from backend.market import Market, BaseTrend
-from backend.teams import TeamsManager
+class GraphChangedCallback(Executable):
 
-def mcb(routine):
-    print("market changed")
-    print("BTC ",Model.GetMarket().GetExchangeRate("BTC"),
-          "LTC ",Model.GetMarket().GetExchangeRate("LTC"),
-          "SGC ",Model.GetMarket().GetExchangeRate("SGC"))
+    def __init__(self):
+        super().__init__()
 
-Model.GetInstance()
-Model.GetInstance().market_ = Market(10, {
-    "BTC" : BaseTrend(10000,1000), 
-    "LTC" : BaseTrend(100,10), 
-    "SGC" : BaseTrend(1000,500), 
-})
+    def __call__(self, routine):
+        pass #Model.GetGraph().print()
 
-Model.GetInstance().teams_ = TeamsManager(["BTC","LTC","SGC"])
-Model.GetTeams().CreateTeam("A")
-Model.GetTeams().CreateTeam("B")
-Model.GetTeams().CreateTeam("C")
 
-Model.Run() # Spawns another thread
+class ChangeNameRoutine(Executable):
+
+    def __init__(self, new_name, time):
+        self.new_name = new_name
+        self.time = time
+        super().__init__()
+
+    def __call__(self, routine):
+        Model.AcquireLock()
+        print("Expected 1s: ", time.time() - self.time)
+        Model.ReleaseLock()
+
+    # Setup:
+
+
+tm = TeamsManager([])
+Model.GetInstance().graph_ = Graph(1, tm)
+servers = []
+for i in range(5):
+    servers.append(Server(Model.GetGraph(), i + 1000))
+
+for i in range(5):
+    servers.append(Server(Model.GetGraph(), i + 1000))
+    Model.GetGraph().add_edges(servers[i], [servers[(i+1) % 5]])
+
+tm.CreateTeam(1, "A")
+tm.CreateTeam(2, "B")
+
+servers[0].set_owner(tm.GetTeam(1))
+servers[1].set_owner(tm.GetTeam(1))
+servers[2].set_owner(tm.GetTeam(1))
+servers[3].set_owner(tm.GetTeam(2))
+servers[4].set_owner(tm.GetTeam(2))
+
+servers[1].set_type("support")
+servers[0].set_type("SSH")
+
+Model.Run()  # Spawns another thread
 Model.AcquireLock()
-Model.AddSubscription(Subscription(Model.GetMarket(), mcb))
+Model.AddSubscription(Subscription(Model.GetGraph(), GraphChangedCallback()))
+Model.ScheduleRoutine(Routine(ChangeNameRoutine("g", time.time()), 1))
 Model.ReleaseLock()
 
-time.sleep(16)
-print(Model.GetMarket().time_)
+Model.GetGraph().print()
 
-print("BTC ",Model.GetMarket().GetHistory("BTC"))
-print("LTC ",Model.GetMarket().GetHistory("LTC"))
-print("SGC ",Model.GetMarket().GetHistory("SGC"))
-
-print("BTC ",Model.GetMarket().GetPredict("BTC",10))
-print("LTC ",Model.GetMarket().GetPredict("LTC",10))
-print("SGC ",Model.GetMarket().GetPredict("SGC",10))
-
-time.sleep(16)
-
-print(Model.GetMarket().time_)
-
-print("BTC ",Model.GetMarket().GetHistory("BTC"))
-print("LTC ",Model.GetMarket().GetHistory("LTC"))
-print("SGC ",Model.GetMarket().GetHistory("SGC"))
-
-print("BTC ",Model.GetMarket().GetPredict("BTC",15))
-print("LTC ",Model.GetMarket().GetPredict("LTC",15))
-print("SGC ",Model.GetMarket().GetPredict("SGC",15))
-
-print("bye")
-
-def helloworld(routine):
-    print("Hello world!")
-
-#timer example
+# TODO: остановка войны раньше её начала
+wm =  WarManager(Model.GetGraph().get_vertexes(), 5)
 Model.AcquireLock()
-r = Routine(helloworld, 5)
-Model.ScheduleRoutine(r)
+wm.start_war(servers[2], servers[3])
 Model.ReleaseLock()
-while not r.executed_:
-    print(r.GetRemainingTime())
-    time.sleep(1)
+w = wm.get_war(servers[2], servers[3])
+print("------------------------------------------------")
+print(w)
 
-def money(r,name):
-    print(name,"has",Model.GetTeams().GetTeam(name).GetCryptoMoney("LTC"))
-
-Model.AcquireLock()
-Model.AddSubscription(Subscription(Model.GetTeams().GetTeam("A"), lambda r: money(r,"A")))
-Model.AddSubscription(Subscription(Model.GetTeams().GetTeam("B"), lambda r: money(r,"B")))
-Model.AddSubscription(Subscription(Model.GetTeams().GetTeam("C"), lambda r: money(r,"C")))
-Model.ReleaseLock()
-
-event_manager = EventManager()
-
-event_manager.LoadEvent("BTChype")
-event_manager.LaunchEvent("BTChype")
-
-time.sleep(5)
-Model.AcquireLock()
-Model.GetTeams().GetTeam("A").AddCryptoMoney("LTC", 10)
-Model.GetTeams().GetTeam("B").AddCryptoMoney("LTC", 100)
-Model.ReleaseLock()
-time.sleep(5)
-Model.GetTeams().GetTeam("B").AddCryptoMoney("LTC", -80,"test")
-time.sleep(5)
-print(Model.GetTeams().GetTeam("B").GetLog())
-print(Model.GetTeams().GetTeam("B").GetLog(reason="test"))
-print(Model.GetTeams().GetTeam("B").GetLog(subject="LTC"))
-print(Model.GetTeams().GetTeam("B").GetLog(reason="sss"))
-
-time.sleep(600)
-
-print("BTC ",Model.GetMarket().GetHistory("BTC"))
-print("LTC ",Model.GetMarket().GetHistory("LTC"))
-print("SGC ",Model.GetMarket().GetHistory("SGC"))
-
+time.sleep(20)
+Model.GetGraph().print()
+time.sleep(100)
 Model.GetTimer().Stop()
-
-

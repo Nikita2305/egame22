@@ -121,6 +121,8 @@ class Model:
     @classmethod
     @singleton 
     def EraseRoutine(self, routine): 
+        if routine.IsDeferred():
+            self.timer_.Remove(routine)
         try:
             self.routines_.remove(routine)
             return True
