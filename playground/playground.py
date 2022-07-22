@@ -8,9 +8,11 @@ from backend.server import Server
 from backend.teams import Team, TeamsManager
 from backend.war import WarManager, War
 from backend.wheels.utils import GraphGenerator
+from backend.newsfeed import NewsFeed
 import time
+from backend.text_generation.posting import Floodilka
 
-colors = [
+"""colors = [
     "#4281A4",
     "#080357",
     "#FF6B6B",
@@ -91,6 +93,19 @@ time.sleep(5)
 for k in tm.teams_.keys():
     print(tm.GetTeam(k).actions_)
     print(tm.GetTeam(k).cryptowallet_)
+"""
+
+def callback(routine):
+    print("changed!!")
+
+Model.GetInstance().news_feed_ = NewsFeed(["2ch", "4chan", "habr"])
+Model.Run()  # Spawns another thread
+Model.AcquireLock()
+Model.AddSubscription(Subscription(Model.GetNewsFeed(), callback))
+Model.ScheduleRoutine(Routine(Floodilka("2ch"), 1))
+# Model.ScheduleRoutine(Routine(Floodilka("4chan"), 1))
+# Model.ScheduleRoutine(Routine(Floodilka("habr"), 1))
+Model.ReleaseLock()
 
 '''
 from backend.model import Model

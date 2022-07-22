@@ -85,7 +85,7 @@ Model.GetInstance().events_ = EventManager()
 
 Model.GetInstance().news_feed_=NewsFeed(forums)
 for name in forums:
-    Model.ScheduleRoutine(Routine(Floodilka(name),1))
+    Model.ScheduleRoutine(Routine(Floodilka(name)))
 
 Model.Run()
 

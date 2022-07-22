@@ -107,3 +107,6 @@ class TextGenerator:
             for i in range(n):
                 ret += [tokens[random.randint(0, len(tokens) - 1)]]
             return ret
+
+"""t = TextGenerator("result_1.rus", "char_to_idx_1.pickle", "idx_to_char_1.pickle")
+print(" ".join(t.get_words(5)))"""
