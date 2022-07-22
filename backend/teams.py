@@ -67,6 +67,8 @@ class TeamsManager:
     def __init__(self, currencies):
         self.teams_ = dict()
         self.currencies_ = currencies
+    def GetTeamsNames(self):
+        return [self.teams_[x].GetName() for x in self.teams_]
     def GetTeam(self, token):
         return self.teams_[token]
     def GetTeamByName(self, name):

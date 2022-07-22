@@ -11,14 +11,14 @@ from backend.wheels.utils import GraphGenerator
 import time
 
 colors = [
-    "#0075DC",
-    "#2BCE48",
-    "#FF0010",
-    "#FFFF00",
-    "#F0A3FF",
-    "#FFA405",
-    "#94FFB5",
-    "#C20088",
+    "#4281A4",
+    "#080357",
+    "#FF6B6B",
+    "#F8F4A6",
+    "#BDF7B7",
+    "#37DB25",
+    "#F1A6F7",
+    "#1D1D1D"
     ]
 
 class GraphChangedCallback(Executable):
@@ -68,6 +68,8 @@ for e in gr[1]:
 
 tm.CreateTeam(1, "A", "")
 tm.CreateTeam(2, "B")
+
+print(tm.GetTeamsNames())
 
 servers[0].set_owner(tm.GetTeam(1))
 servers[1].set_owner(tm.GetTeam(1))
