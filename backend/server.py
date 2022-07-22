@@ -10,6 +10,7 @@ class Server(Vertex):
         self.__enabled = 1
         self.__k = 0.0
         self.__power = 100
+        self.__next_price = 10000
         self.__id = id
         self.__x = 0
         self.__y = 0
@@ -50,6 +51,12 @@ class Server(Vertex):
 
     def get_power(self):
         return self.__power
+    
+    def set_next_price(self, new_price):
+        self.__next_price = new_price
+
+    def get_next_price(self):
+        return self.__next_price
 
     def get_type(self):
         return self.__type

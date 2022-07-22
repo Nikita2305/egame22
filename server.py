@@ -142,10 +142,17 @@ async def give(websocket, token,team_name,cur,amount):
 async def info(websocket,token):
     await websocket.send(reply(200,"OK",token,json.dumps({"name":Model.GetTeams().GetTeam(token).GetName(),"money":[{"name":"dollar","amount":Model.GetTeams().GetTeam(token).GetMoney()}]+[{"name":cur,"amount":Model.GetTeams().GetTeam(token).GetCryptoMoney(cur)} for cur in currencies_list],"nodes":[{"id":node.get_id(),"state":node.get_type(),"power":node.get_power()} for node in Model.GetGraph().get_servers_by_owners(Model.GetTeams().GetTeam(token))]})))
 
-# async def upgrade(websocket,token,node_id):
-#     Model.AcquireLock()
-#     if(Model.GetTeams().GetTeam(token).AddMoneyCheck(-Model.GetGraph().find_server(id)))
-#     Model.GetGraph().upgrade_server(node_id,Model.GetGraph().find_server(id).get_power()*1.5)
+async def upgrade(websocket,token,node_id):
+    Model.AcquireLock()
+    s = Model.GetGraph().find_server(node_id)
+    if Model.GetTeams().GetTeam(token).AddMoneyCheck(-s.get_next_price()):
+        Model.GetGraph().upgrade_server(s,s.get_power()*1.5)
+        Model.GetTeams().GetTeam(token).AddMoney(-s.get_next_price(), reason="upgrade")
+        s.set_next_price(s.get_next_price()*2)
+        await websocket.send(reply(200,"OK",token))
+    else:
+        await websocket.send(reply(228,"Not enough money",token))
+    Model.ReleaseLock()
 
 # async def print_team
 
