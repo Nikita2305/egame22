@@ -94,6 +94,17 @@ class Graph(Subscriptable, Executable):
     def get_vertexes(self) -> []:
         return list(self.__graph.keys())
 
+    def get_edges(self) -> []:
+        ret = []
+        lst = self.get_vertexes()
+        for i in range(len(lst)):
+            for j in range(i+1,len(lst)):
+                v0 = lst[i]
+                v1 = lst[j]
+                if v1 in self.__graph[v0]:
+                    ret.append((v0.get_id(),v1.get_id()))
+        return ret
+
     def get_servers_by_owners(self, owner: Team) -> []:
         servers = []
         for v in self.__graph.keys():

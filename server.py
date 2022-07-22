@@ -75,7 +75,11 @@ for e in ee:
 tl = Model.GetTeams().GetTeamsList()
 for i in range(len(tl)):
     servers[i*16].set_owner(tl[i])
-    
+
+Model.GetInstance().wars_ = WarManager(servers,120)
+
+Model.GetInstance().events_ = EventManager()
+
 Model.GetInstance().news_feed_=NewsFeed(["2ch","4chan","habr"])
 Model.Run()
 

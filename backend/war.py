@@ -27,6 +27,15 @@ class WarManager:
 
     def get_local_wars(self, defender: Server) -> []:
         return self.__wars[defender]
+    
+    def get_wars(self) -> []:
+        ret = []
+        for d in self.__wars:
+            sum(self.__wars[d],ret)
+        return
+    
+    def get_war_routine(self, war):
+        return self.__war_routines[war]
 
     def get_start_war_shift(self, war):
         local_wars = self.get_local_wars(war.get_defender())

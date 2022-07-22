@@ -6,22 +6,6 @@ from backend.wheels.timer import Timer
 from functools import wraps
 from backend.wheels.subscriptable import Subscriptable
 
-class GraphStub (Subscriptable):
-    def __init__(self):
-        super().__init__()
-
-class TeamsStub (Subscriptable):
-    def __init__(self):
-        super().__init__() 
-        
-class MarketStub (Subscriptable):
-    def __init__(self):
-        super().__init__() 
-        
-class NewsFeedStub (Subscriptable):
-    def __init__(self):
-        super().__init__()
-
 def singleton(func):
     @wraps(func)
     def wrapper(cls, *args, **kwargs): 
@@ -49,10 +33,11 @@ class Model:
     instance_ = None
     
     def __init__(self):
-        self.graph_ = GraphStub()
-        self.market_ = MarketStub()
-        self.teams_ = TeamsStub()
-        self.news_feed_ = NewsFeedStub()
+        self.graph_ = None
+        self.market_ = None
+        self.teams_ = None
+        self.news_feed_ = None
+        self.wars_ = None
         self.mutex_ = threading.Lock()
         self.subscriptions_ = []
         self.routines_ = []
@@ -89,6 +74,16 @@ class Model:
     @singleton 
     def GetMarket(self):
         return self.market_
+    
+    @classmethod
+    @singleton 
+    def GetWarManager(self):
+        return self.wars_
+    
+    @classmethod
+    @singleton 
+    def GetEventManager(self):
+        return self.events_
 
     @classmethod
     @singleton 
