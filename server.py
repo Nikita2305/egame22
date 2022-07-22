@@ -1,3 +1,4 @@
+from ast import Mod
 from glob import glob
 from django.forms import ModelForm
 from backend.model import Model
@@ -37,28 +38,22 @@ class AttendancePrice:
             return self.cache_[-1] - (x-len(self.cache_)) if self.cache_[-1] - (x-len(self.cache_)) > 0 else 1
 cur_bases["AttendenceCoin"] = AttendancePrice()
 Model.GetInstance()
-Model.GetInstance().market_=Market(60,cur_bases)
+Model.GetInstance().market_=Market(5,cur_bases)
 Model.GetInstance().teams_=TeamsManager(currencies_list)
-<<<<<<< HEAD
-Model.GetTeams().CreateTeam("TOKEN1","Team1")
-Model.GetTeams().CreateTeam("TOKEN2","Team2")
-Model.GetTeams().CreateTeam("TOKEN3","Team3")
-Model.GetInstance().graph_=Graph(10,Model.GetTeams(),currencies_list)
-=======
 nteams = 8;
 colors = [
-    "#4281A4",
-    "#080357",
-    "#FF6B6B",
-    "#F8F4A6",
-    "#BDF7B7",
-    "#37DB25",
-    "#F1A6F7",
-    "#1D1D1D"
+    "#1d85e8",
+    "#f88d2c",
+    "#5451b0",
+    "#db6656",
+    "#42a18a",
+    "#30779d",
+    "#ee4a5d",
+    "#ef9cf0"
     ]
 
 for i in range(nteams):
-    Model.GetTeams().CreateTeam("TOKEN"+str(i+1),None,colors[i])
+    Model.GetTeams().CreateTeam("TOKEN"+str(i+1),colors[i])
 
 Model.GetInstance().graph_=Graph(120,Model.GetTeams(),currencies_list)
 vv,ee = GraphGenerator(nteams=nteams,
@@ -82,7 +77,6 @@ tl = Model.GetTeams().GetTeamsList()
 for i in range(len(tl)):
     servers[i*16].set_owner(tl[i])
     
->>>>>>> origin/model
 Model.GetInstance().news_feed_=NewsFeed(["2ch","4chan","habr"])
 Model.Run()
 
@@ -128,6 +122,14 @@ async def give_dollar(websocket, token, team_name, amount):
     Model.ReleaseLock()
     await websocket.send(reply(200,"Added dollar",token))
 
+async def give(websocket, token,team_name,cur,amount):
+    if(cur=="dollar"):
+        await give_dollar(websocket,token,team_name,amount)
+    elif(cur in currencies_list):
+        await give_crypto(websocket,token,team_name,cur,amount)
+    else:
+        await websocket.send(reply(228,"HEHEH",token))
+        
 async def info(websocket,token):
     return json.dumps({"name":Model.GetTeams().GetTeam(token).GetName(),"money":{"name":"dollar","amount":Model.GetTeams().GetTeam(token).GetMoney()}+{{"name":cur,"amount":Model.GetTeams().GetTeam(token).GetCryptoMoney(cur)} for cur in currencies_list}})
 
@@ -158,15 +160,32 @@ async def transfer(websocket, token, team2, cur, amount):
 
 # async def give_money(websocket, team_token, t)
 async def on_bot_connect(websocket, token):
-    await websocket.send(reply(200,"OK",token,{"teams":Model.GetTeams().GetTeamsNames(),"forums":[]}))
+    await websocket.send(reply(200,"OK",token,{"teams":Model.GetTeams().GetTeamsNames(),"forums":[],"currencies":currencies_list}))
     
-async def sell(websocket,name,amount):
+async def sell(websocket,token,cur,amount):
+    amount=float(amount)
     Model.AcquireLock();
-    if Model.GetTeams().GetTeamByName(name).GetCryptoMoney():
-        pass
+    if Model.GetTeams().GetTeam(token).AddCryptoMoneyCheck(cur,-amount):
+        Model.GetTeams().GetTeam(token).AddMoney(amount*Model.GetMarket().GetExchangeRate(cur))
+        Model.GetTeams().GetTeam(token).AddCryptoMoney(cur,-amount)
+        Model.ReleaseLock()
+        await websocket.send(reply(200,"Crypto exchanged",token))
+    else:
+        Model.ReleaseLock()
+        await websocket.send(reply(228,"Not enough crypto",token))
 
-async def buy(websocket,name,amount):
-    pass
+async def buy(websocket,token,cur,amount):
+    amount=float(amount)
+    Model.AcquireLock();
+    if Model.GetTeams().GetTeam(token).AddCryptoMoney(-amount):
+        Model.GetTeams().GetTeam(token).AddMoney(amount/Model.GetMarket().GetExchangeRate(cur))
+        Model.GetTeams().GetTeam(token).AddCryptoMoney(-amount)
+        Model.ReleaseLock()
+        await websocket.send(reply(200,"Crypto exchanged",token))
+    else:
+        Model.ReleaseLock()
+        await websocket.send(reply(228,"Not enough crypto",token))
+
 
 async def change_node(node_id, new_state):
     pass
@@ -174,17 +193,40 @@ async def change_node(node_id, new_state):
 async def subscribe_leaderboard(websocket, token):
     def teams(r):
         print("team callback triggered")
-        return
-        asyncio.run(websocket.send(sub_reply(3,"TEAM_UPD",1)))
+        asyncio.run(websocket.send(json.dumps({"teams":[{"name":team.GetName(),"color":team.GetColor(),"balance":team.GetMoney()} for team in Model.GetTeams().GetTeamsList()]})))
     def market(r):
         print("market callback triggered")
         asyncio.run(websocket.send(json.dumps({"crypto_currencies":[{"name":x,"price":y} for x,y in ((name,Model.GetMarket().GetExchangeRate(name)) for name in currencies_list)]})))
     Model.AcquireLock()
     [Model.AddSubscription(Subscription(team,teams)) for team in Model.GetTeams().GetTeamsList()]
     Model.AddSubscription(Subscription(Model.GetMarket(),market))
+    asyncio.create_task(websocket.send(json.dumps({"teams":[{"name":team.GetName(),"color":team.GetColor(),"balance":team.GetMoney()} for team in Model.GetTeams().GetTeamsList()]})))
+    asyncio.create_task(websocket.send(json.dumps({"crypto_currencies":[{"name":x,"price":y} for x,y in ((name,Model.GetMarket().GetExchangeRate(name)) for name in currencies_list)]})))
     Model.ReleaseLock()
     await websocket.send(reply(200,"Succsesfull subscribe",token))
-# async def 
+
+async def subscribe_graph(websocket, token):
+    asyncio.create_task(websocket.send(json.dumps({"nodes":[{"id":node.get_id(),"positionX":node.get_x(),"positionY":node.get_y(),"power":node.get_power(),"defense":node.get_power()*node.get_k(),"type":node.get_type(),"level":node.get_level(),"color":node.get_owner().GetColor() if node.get_owner() is not None else None} for node in Model.GetGraph().get_vertexes()],"edges":[]})))
+    class graph(Executable):
+        def __init__(self):
+            super().__init__()
+            self.sub = None
+        def __call__(self,r):
+            print("graph callbakc triggered")
+            if websocket.closed and self.sub is not None:
+                Model.AcquireLock()
+                Model.EraseSubscription(self.sub)
+                Model.ReleaseLock()
+            else:
+                asyncio.run(websocket.send(json.dumps({"nodes":[{"id":node.get_id(),"positionX":node.get_x(),"positionY":node.get_y(),"power":node.get_power(),"defense":node.get_power()*node.get_k(),"type":node.get_type(),"level":node.get_level(),"color":node.get_owner().GetColor() if node.get_owner() is not None else None} for node in Model.GetGraph().get_vertexes()],"edges":[]})))
+    
+    Model.AcquireLock()
+    G = graph()
+    S = Subscription(Model.GetGraph(),G)
+    G.sub = S
+    Model.AddSubscription(S)
+    Model.ReleaseLock()
+    await websocket.send(reply(200,"successfull subscribe",token))
 
 #-=-=-=-=-=-=-=-=-=-=-=-(/METHODS)-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
@@ -231,7 +273,7 @@ async def igra(websocket):
             await websocket.send(reply(228,"No such method",token))
 
 async def main():
-    async with websockets.serve(igra, port=1337, ping_interval=None):
+    async with websockets.serve(igra, port=1337):
         await asyncio.Future()  # run forever
 
 asyncio.run(main())
