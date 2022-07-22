@@ -16,7 +16,8 @@ class Graph(Subscriptable, Executable):
         self.__curr = currencies_bases_dict
         self.__teams_manager = teams_manager
         self.__tick = tick
-        Model.ScheduleRoutine(Routine(self, self.__tick))
+        r = Routine(self, self.__tick)
+        Model.ScheduleRoutine(r)
 
     @notifier_with_model_lock
     def __call__(self, routine):

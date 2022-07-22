@@ -27,7 +27,7 @@ class GraphChangedCallback(Executable):
         super().__init__()
 
     def __call__(self, routine):
-        Model.GetGraph().print()
+        print("graph changed")#Model.GetGraph().print()
 
 
 class ChangeNameRoutine(Executable):
@@ -44,7 +44,7 @@ class ChangeNameRoutine(Executable):
 
     # Setup:
 
-
+Model.GetInstance()
 tm = TeamsManager(["BTC", "EPH", "RUB"])
 Model.GetInstance().graph_ = Graph(1, tm, ["BTC", "EPH", "RUB"])
 servers = []
