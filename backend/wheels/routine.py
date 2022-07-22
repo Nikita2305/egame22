@@ -1,5 +1,4 @@
 import backend.model
-from backend.wheels.utils import ObjectCounter
 from backend.wheels.schedulers import ThreadScheduler
 import time
 import threading

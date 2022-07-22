@@ -12,6 +12,8 @@ class Server(Vertex):
         self.__k = 0.0
         self.__power = 100
         self.__id = id
+        self.__x = 0
+        self.__y = 0
         super().__init__(graph)
 
     def is_enabled(self):
@@ -65,6 +67,18 @@ class Server(Vertex):
 
     def get_k(self):
         return self.__k
+    
+    def get_x(self):
+        return self.__x
+    
+    def set_x(self, x):
+        self.__x = x
+
+    def get_y(self):
+        return self.__y
+    
+    def set_y(self, y):
+        self.__y = y
 
     def get_level(self):
         """для ресурсов с SSH"""
@@ -103,9 +117,12 @@ class Server(Vertex):
 
     def print(self, prefix=""):
         print(prefix + str(self))
-        print(prefix + "    " + str(self.__id))
+        print(prefix + "    " + str(self.__id) + " (" + str(self.__x)+","+str(self.__y)+")")
         print(prefix + "    " + self.__type)
-        print(prefix + "    " + self.__owner.GetName())
+        print(prefix + "    " + (self.__owner.GetName() if self.__owner is not None else "None"))
         print(prefix + "    " + str(self.__power))
         print(prefix + "    " + str(self.get_power_gift()))
-        print(prefix + "    " + str(self.get_support_neighbours()))
+        try:
+            print(prefix + "    " + str(self.get_support_neighbours()))
+        except TypeError:
+            pass
