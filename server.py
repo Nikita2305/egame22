@@ -4,10 +4,12 @@ from backend.model import Model
 from backend.wheels.routine import Executable, Routine
 from backend.wheels.subscriptable import Subscription, Subscriptable, notifier
 from backend.graph import Graph
+from backend.server import Server
 from backend.market import Market, BaseTrend
 from backend.newsfeed import NewsFeed
 from backend.teams import Team, TeamsManager
 from backend.war import WarManager, War
+from backend.wheels.utils import GraphGenerator
 import asyncio
 import websockets
 import json
@@ -17,20 +19,63 @@ from random import randint
 admin_tokens=[]
 team_tokens=[]
 
-currencies_list=["BTC_1","BTC_2"]
 methods_list=[]
 admin_methods=["save","print","on_bot_connect", "register_team", "subscribe_leaderboard","post"]
 
 
 #-=-=-=-=-=-=-=-=-=-=-=-(GAVNO(+-100проц будет переписано))=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
+currencies_list=["SigmaCoin","Kefirium","DogeCoin","AttendenceCoin"]
+cur_bases = dict([(c,BaseTrend(100,10,abs(hash(c)))) for c in currencies_list])
+class AttendancePrice:
+    def __init__(self):
+        self.cache_ = [62,61,60,57,51,55,49,56,47,47]
+    def __call__(self, x):
+        if x < len(self.cache_):
+            return self.cache_[x]
+        else:
+            return self.cache_[-1] - (x-len(self.cache_)) if self.cache_[-1] - (x-len(self.cache_)) > 0 else 1
+cur_bases["AttendenceCoin"] = AttendancePrice()
 Model.GetInstance()
-Model.GetInstance().market_=Market(10,dict([(c,BaseTrend(1000,100,abs(hash(c)))) for c in currencies_list]))
+Model.GetInstance().market_=Market(60,cur_bases)
 Model.GetInstance().teams_=TeamsManager(currencies_list)
-Model.GetTeams().CreateTeam("TOKEN1","Team1")
-Model.GetTeams().CreateTeam("TOKEN2","Team2")
-Model.GetTeams().CreateTeam("TOKEN3","Team3")
-Model.GetInstance().graph_=Graph(10,Model.GetTeams())
+nteams = 8;
+colors = [
+    "#4281A4",
+    "#080357",
+    "#FF6B6B",
+    "#F8F4A6",
+    "#BDF7B7",
+    "#37DB25",
+    "#F1A6F7",
+    "#1D1D1D"
+    ]
+
+for i in range(nteams):
+    Model.GetTeams().CreateTeam("TOKEN"+str(i+1),None,colors[i])
+
+Model.GetInstance().graph_=Graph(120,Model.GetTeams(),currencies_list)
+vv,ee = GraphGenerator(nteams=nteams,
+                   n_outer_ring_vert_per_team=12, 
+                   n_core_vert_per_team=4,
+                   n_outer_edges=20,
+                   n_core_edges=3,
+                   n_links=4,
+                   debug=False)
+servers = []
+for v in vv:
+    s = Server(Model.GetGraph(), v.i)
+    s.set_x(v.x)
+    s.set_y(v.y)
+    s.set_power(v.power)
+    servers.append(s)
+for e in ee:
+    Model.GetGraph().add_edges(servers[e[0].i], [servers[e[1].i]])
+    
+tl = Model.GetTeams().GetTeamsList()
+for i in range(len(tl)):
+    servers[i*16].set_owner(tl[i])
+    
 Model.GetInstance().news_feed_=NewsFeed(["2ch","4chan","habr"])
 Model.Run()
 
