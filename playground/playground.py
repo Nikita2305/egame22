@@ -10,6 +10,16 @@ from backend.war import WarManager, War
 from backend.wheels.utils import GraphGenerator
 import time
 
+colors = [
+    "#0075DC",
+    "#2BCE48",
+    "#FF0010",
+    "#FFFF00",
+    "#F0A3FF",
+    "#FFA405",
+    "#94FFB5",
+    "#C20088",
+    ]
 
 class GraphChangedCallback(Executable):
 
@@ -56,7 +66,7 @@ for v in gr[0]:
 for e in gr[1]:
     Model.GetGraph().add_edges(servers[e[0].i], [servers[e[1].i]])
 
-tm.CreateTeam(1, "A")
+tm.CreateTeam(1, "A", "")
 tm.CreateTeam(2, "B")
 
 servers[0].set_owner(tm.GetTeam(1))

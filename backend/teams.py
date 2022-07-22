@@ -9,9 +9,10 @@ class LogEntry:
         self.time_ = backend.model.Model.GetTimer().GetTime()
 
 class Team (Subscriptable):
-    def __init__(self, token, name, currencies):
+    def __init__(self, token, name, currencies, color):
         super().__init__()
         self.name_ = name
+        self.color_ = color
         self.token_ = token
         self.cryptowallet_ = dict([(cur,0.) for cur in currencies])
         self.log_ = []
@@ -50,7 +51,10 @@ class Team (Subscriptable):
     @notifier
     def SetName(self, name):
         self.name_ = name
-        
+    
+    def GetColor(self):
+        return self.color_
+    
     def GetLog(self, subject=None, reason=None):
         ret = self.log_
         if subject is not None:
@@ -70,7 +74,7 @@ class TeamsManager:
             if t.GetName() == name:
                 return t
         raise ValueError
-    def CreateTeam(self, token, name=None):
+    def CreateTeam(self, token, color, name=None):
         if name is None:
             name = "Team "+str(len(self.teams_)+1)
-        self.teams_[token] = Team(token, name, self.currencies_)
+        self.teams_[token] = Team(token, name, self.currencies_, color)
