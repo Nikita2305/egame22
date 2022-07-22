@@ -14,6 +14,6 @@ class Floodilka (Executable):
     def __call__(self, routine):
         Model.AcquireLock()
         Model.GetNewsFeed().SendPost(self.forum_number, " ".join(self.text_generator.get_words(2)), " ".join(self.text_generator.get_words(3)), self.text_generator.get_cute_message(500))
-        Model.ScheduleRoutine(routine)
+        # Model.ScheduleRoutine(routine)
         Model.ReleaseLock()
           
