@@ -23,7 +23,7 @@ admin_tokens=[]
 team_tokens=[]
 
 methods_list=[]
-admin_methods=["save","print","on_bot_connect", "register_team", "subscribe_leaderboard","post"]
+admin_methods=["save","print","on_bot_connect", "register_team", "subscribe_leaderboard"]
 forums=["2ch","4chan","habr"]
 
 #-=-=-=-=-=-=-=-=-=-=-=-(GAVNO(+-100проц будет переписано))=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
@@ -84,8 +84,8 @@ Model.GetInstance().wars_ = WarManager(servers,120)
 Model.GetInstance().events_ = EventManager()
 
 Model.GetInstance().news_feed_=NewsFeed(forums)
-for name in forums:
-    Model.ScheduleRoutine(Routine(Floodilka(name),1))
+#for name in forums:
+#    Model.ScheduleRoutine(Routine(Floodilka(name),1))
 
 Model.Run()
 
@@ -174,7 +174,7 @@ async def transfer(websocket, token, team2, cur, amount):
 
 # async def give_money(websocket, team_token, t)
 async def on_bot_connect(websocket, token):
-    await websocket.send(reply(200,"OK",token,{"teams":Model.GetTeams().GetTeamsNames(),"forums":[],"currencies":currencies_list}))
+    await websocket.send(reply(200,"OK",token,{"teams":Model.GetTeams().GetTeamsNames(),"forums":forums,"currencies":currencies_list}))
     
 async def sell(websocket,token,cur,amount):
     amount=float(amount)
@@ -200,9 +200,6 @@ async def buy(websocket,token,cur,amount):
         Model.ReleaseLock()
         await websocket.send(reply(228,"Not enough crypto",token))
 
-
-async def change_node(node_id, new_state):
-    pass
 
 async def subscribe_leaderboard(websocket, token):
     def teams(r):
@@ -253,6 +250,16 @@ async def subscribe_graph(websocket, token):
     Model.ReleaseLock()
     await websocket.send(reply(200,"successfull subscribe",token))
 
+async def subscribe_forum(websocket,token,forum):
+    asyncio.create_task(websocket.send(json.dumps({"posts":[{"name":post.GetHeader(),"text":post.GetBody(),"author":post.GetAuthor()} for post in Model.GetNewsFeed().GetPosts(forum)]})))
+    def forumm(r):
+        print("forum callback triggered")
+        asyncio.run(websocket.send(json.dumps({"posts":[{"name":post.GetHeader(),"text":post.GetBody(),"author":post.GetAuthor()} for post in Model.GetNewsFeed().GetPosts(forum)]})))
+    Model.AcquireLock()
+    Model.AddSubscription(Subscription(Model.GetNewsFeed(),forumm))
+    Model.ReleaseLock()
+    await websocket.send(reply(200,"successfull subscribe",token))
+
 async def post(websocket,token, forum, author, header, body):
     Model.AcquireLock();
     Model.GetNewsFeed().SendPost(forum, author, header, body)
@@ -261,6 +268,11 @@ async def post(websocket,token, forum, author, header, body):
 
 async def get_posts(websocket,token,forum):
     await websocket.send(reply(200,"posts acuireseded",token,[{"name":post.GetHeader(),"text":post.GetBody(),"author":post.GetAuthor()} for post in Model.GetNewsFeed().GetPosts(forum)]))
+
+async def attack(websocket,token,id_from,id_to):
+    Model.AcquireLock()
+    Model.GetWarManager()
+    Model.ReleaseLock()
 
 #-=-=-=-=-=-=-=-=-=-=-=-(/METHODS)-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
