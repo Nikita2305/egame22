@@ -67,29 +67,9 @@ wm =  WarManager(Model.GetGraph().get_vertexes(), 5)
 Model.AcquireLock()
 wm.start_war(servers[2], servers[3])
 Model.ReleaseLock()
-<<<<<<< HEAD
 w = wm.get_war(servers[2], servers[3])
 print("------------------------------------------------")
 print(w)
 Model.AcquireLock()
 wm.stop_war(w)
 Model.ReleaseLock()
-=======
-time.sleep(5)
-Model.GetTeams().GetTeam("B").AddCryptoMoney("LTC", -80,"test")
-time.sleep(5)
-print(Model.GetTeams().GetTeam("B").GetLog())
-print(Model.GetTeams().GetTeam("B").GetLog(reason="test"))
-print(Model.GetTeams().GetTeam("B").GetLog(subject="LTC"))
-print(Model.GetTeams().GetTeam("B").GetLog(reason="sss"))
-
-time.sleep(600)
-
-print("BTC ",Model.GetMarket().GetHistory("BTC"))
-print("LTC ",Model.GetMarket().GetHistory("LTC"))
-print("SGC ",Model.GetMarket().GetHistory("SGC"))
-
-Model.GetTimer().Stop()
-
-
->>>>>>> origin/model
