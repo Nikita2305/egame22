@@ -65,6 +65,11 @@ class TeamsManager:
         self.currencies_ = currencies
     def GetTeam(self, token):
         return self.teams_[token]
+    def GetTeamsList(self):
+        teams = []
+        for token in self.teams_.keys():
+            teams.append(self.GetTeam(token))
+        return teams
     def GetTeamByName(self, name):
         for t in self.teams_:
             if t.GetName() == name:

@@ -6,7 +6,6 @@ class Server(Vertex):
     def __init__(self, graph, id, owner=None):
         self.__type = "empty"
         self.__owner = owner
-        self.__crypt = None
         # все ли проверки присутствуют - есть только война
         self.__enabled = 1
         self.__k = 0.0
@@ -27,8 +26,7 @@ class Server(Vertex):
         self.__type = new_type
         if new_type == "attack":
             self.__k = 0.5
-        elif new_type == "mining":
-            self.__crypt = crypt
+        elif new_type in self.get_graph().get_curr():
             self.__k = 0.5
         elif new_type == "SSH":
             self.__k = 0.0
@@ -38,12 +36,6 @@ class Server(Vertex):
             self.__k = 0.7
         elif new_type == "support":
             self.__k = 0.0
-
-    def get_crypt(self):
-        return self.__crypt
-
-    def set_crypt(self, crypt):
-        self.__crypt = crypt
 
     def set_owner(self, new_owner):
         self.__owner = new_owner
@@ -80,7 +72,7 @@ class Server(Vertex):
 
     def get_crypto_money(self):
         """показывает сколько ресурсов даёт mining"""
-        if self.__type != "mining":
+        if not(self.__type in self.get_graph().get_curr()):
             return 0
         # TODO: rewrite formula
         return self.get_power()

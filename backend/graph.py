@@ -11,29 +11,44 @@ from backend.server import Server
 class Graph(Subscriptable, Executable):
     __graph = {}
 
-    def __init__(self, tick, teams_manager):
+    def __init__(self, tick, teams_manager, currencies_bases_dict):
+        super().__init__()
+        self.__curr = currencies_bases_dict
         self.__teams_manager = teams_manager
         self.__tick = tick
-        super().__init__()
         Model.ScheduleRoutine(Routine(self, self.__tick))
 
     @notifier_with_model_lock
     def __call__(self, routine):
-        # TODO: нужно ли обнулять action, get for teammanager
-        '''for token in self.__teams_manager.teams_.keys():
-            team = self.__teams_manager.GetTeam(token)
-            team.AddActions(-(team.GetActions()))'''
+        new_resources = {} # {team: {"actions":, "BTC": ,...}}
+        teams = self.__teams_manager.GetTeamsList()
+        for t in teams:
+            new_resources[t] = {}
+            new_resources[t]["actions"] = 0
+            for c in self.__curr:
+                new_resources[t][c] = 0
         vertexes = self.get_vertexes()
         for v in vertexes:
             if v.get_owner() is None:
                 continue
-            v.get_owner().AddActions(v.get_moves())
-            #v.get_owner().AddCryptoMoney(v.get_crypto_money())
+            new_resources[v.get_owner()]["actions"] += v.get_moves()
+            if v.get_type() in self.__curr:
+                new_resources[v.get_owner()][v.get_type()] += v.get_crypto_money()
+
+        for t in teams:
+            t.AddActions(new_resources[t]["actions"])
+            for c in self.__curr:
+                t.AddCryptoMoney(c, new_resources[t][c], "mining")
+
         print("AHAHA")
         for k in self.__teams_manager.teams_.keys():
             print(self.__teams_manager.GetTeam(k).actions_)
+            print(self.__teams_manager.GetTeam(k).cryptowallet_)
         print(time.time())
         Model.ScheduleRoutine(routine)
+
+    def get_curr(self):
+        return self.__curr
 
     def find_same_vertex(self, vertex: Vertex):
         for v in self.__graph.keys():

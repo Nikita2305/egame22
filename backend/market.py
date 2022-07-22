@@ -90,7 +90,7 @@ class Market (Subscriptable, Executable):
     def __init__(self, tick, currencies_bases_dict):
         super().__init__()
         self.tick_time_ = tick
-        self.markets_ = dict();
+        self.markets_ = dict()
         for cur in currencies_bases_dict:
             self.markets_[cur] = SingleMarket(currencies_bases_dict[cur])
         self.time_ = 0
