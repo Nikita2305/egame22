@@ -222,7 +222,7 @@ async def subscribe_graph(websocket, token):
                     {
                         "nodes":[{"id":node.get_id(),"positionX":node.get_x(),"positionY":node.get_y(),"power":node.get_power(),"defense":node.get_power()*node.get_k(),"type":node.get_type(),"level":node.get_level(),"color":node.get_owner().GetColor() if node.get_owner() is not None else None} for node in Model.GetGraph().get_vertexes()],
                         "edges":[{"source":e[0],"target":e[1]} for e in Model.GetGraph().get_edges()],
-                        "timers":[{"source":w.get_attaker(),"target":w.get_defender(),"timer":Model.GetWarManager().get_war_routine(w).GetRemainingTime()} for w in Model.GetWarManager().get_wars()]
+                        "timers":[{"source":w.get_attacker().get_id(),"target":w.get_defender().get_id(),"timer":Model.GetWarManager().get_war_routine(w).GetRemainingTime()} for w in Model.GetWarManager().get_wars()]
                     })
     Model.AcquireLock()
     asyncio.create_task(websocket.send(form_json()))
@@ -270,9 +270,11 @@ async def get_posts(websocket,token,forum):
     await websocket.send(reply(200,"posts acuireseded",token,[{"name":post.GetHeader(),"text":post.GetBody(),"author":post.GetAuthor()} for post in Model.GetNewsFeed().GetPosts(forum)]))
 
 async def attack(websocket,token,id_from,id_to):
+    id_from,id_to=int(id_from),int(id_to)
     Model.AcquireLock()
-    Model.GetWarManager()
+    Model.GetWarManager().start_war(Model.GetGraph().find_server(id_from),Model.GetGraph().find_server(id_to))
     Model.ReleaseLock()
+    await websocket.send(reply(200,"war started!",token))
 
 #-=-=-=-=-=-=-=-=-=-=-=-(/METHODS)-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 

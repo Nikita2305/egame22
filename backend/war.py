@@ -21,6 +21,7 @@ class WarManager:
         Model.EraseRoutine(self.__war_routines[war])
         self.end_war(war)
 
+    # бесполезная
     def end_war(self, war):
         self.__wars[war.get_defender()].remove(war)
         del self.__war_routines[war]
@@ -30,8 +31,9 @@ class WarManager:
     
     def get_wars(self) -> []:
         ret = []
-        for d in self.__wars:
-            sum(self.__wars[d],ret)
+        for d in self.__wars.keys():
+            ret += self.__wars[d]
+        print(ret)
         return ret
     
     def get_war_routine(self, war):
