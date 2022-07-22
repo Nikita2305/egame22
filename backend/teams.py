@@ -71,6 +71,11 @@ class TeamsManager:
         return [self.teams_[x].GetName() for x in self.teams_]
     def GetTeam(self, token):
         return self.teams_[token]
+    def GetTeamsList(self):
+        teams = []
+        for token in self.teams_.keys():
+            teams.append(self.GetTeam(token))
+        return teams
     def GetTeamByName(self, name):
         for t in self.teams_:
             if self.teams_[t].GetName() == name:

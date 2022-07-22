@@ -38,14 +38,14 @@ class Timer:
         self.mutex_.release()
             
     def ScheduleExpired(self, self_routine):
-        new_routines = []
+        #new_routines = []
         self.mutex_.acquire()
         for routine in self.routines_:
             if routine.GetRemainingTime() <= 0:
                 routine.Schedule()
-            else:
-                new_routines.append(routine)
-        self.routines_ = new_routines 
+            #else:
+                #new_routines.append(routine)
+        #self.routines_ = new_routines 
         self.mutex_.release()        
 
     def Add(self, routine):
@@ -56,7 +56,6 @@ class Timer:
 
     def Remove(self, routine):
         self.mutex_.acquire()
-        routine.SetAddTime(None)
         try:
             self.routines_.remove(routine)
             self.mutex_.release()

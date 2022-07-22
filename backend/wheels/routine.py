@@ -44,8 +44,8 @@ class Routine:
 
     def Execute(self): 
         self.mutex_.acquire()
-        self.executable_(self)
         self.executed_ = True
+        self.executable_(self)
         self.mutex_.release()
         backend.model.Model.AcquireLock()
         backend.model.Model.EraseRoutine(self) # Erase at most one of several possible equal Routines
