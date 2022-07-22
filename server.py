@@ -84,8 +84,14 @@ Model.GetInstance().wars_ = WarManager(servers,120)
 Model.GetInstance().events_ = EventManager()
 
 Model.GetInstance().news_feed_=NewsFeed(forums)
+<<<<<<< HEAD
+# for name in forums:
+#     Model.ScheduleRoutine(Routine(Floodilka(name),1))
+
+=======
 #for name in forums:
 #    Model.ScheduleRoutine(Routine(Floodilka(name),1))
+>>>>>>> f0394a700381dc80cbc2596cbaad25efb74dbc35
 
 Model.Run()
 
@@ -201,6 +207,24 @@ async def buy(websocket,token,cur,amount):
         await websocket.send(reply(228,"Not enough crypto",token))
 
 
+<<<<<<< HEAD
+async def reclassify(websocket, token, node_id, new_state):
+    Model.AcquireLock()
+    if node_id not in [node.get_id() for node in Model.GetGraph().get_servers_by_owners(Model.GetTeams().GetTeam(token))]:
+        return await websocket.send(reply(208,"not your node",token))
+
+    if not Model.GetTeams.GetTeam(token).AddActionsCheck(-1):
+        return await websocket.send(reply(209,"not enough actions",token))
+    
+    Model.GetGraph().find_server(node_id).set_type(new_state)
+    Model.GetTeams.GetTeam(token).AddActions(-1)
+
+    Model.ReleaseLock()
+
+    await websocket.send(reply(200,"OK",token)) 
+
+=======
+>>>>>>> f0394a700381dc80cbc2596cbaad25efb74dbc35
 async def subscribe_leaderboard(websocket, token):
     def teams(r):
         print("team callback triggered")
