@@ -33,7 +33,7 @@ class Routine:
     def SetAddTime(self, t):
         self.addtime_ = t
         
-    def IsExecuted():
+    def IsExecuted(self):
         return self.executed_
 
     def GetRemainingTime(self):

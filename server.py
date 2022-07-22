@@ -19,7 +19,7 @@ team_tokens=[]
 
 currencies_list=["BTC_1","BTC_2"]
 methods_list=[]
-admin_methods=["save","print","on_bot_connect", "register_team"]
+admin_methods=["save","print","on_bot_connect", "register_team", "subscribe_leaderboard","post"]
 
 
 #-=-=-=-=-=-=-=-=-=-=-=-(GAVNO(+-100проц будет переписано))=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
@@ -27,8 +27,12 @@ admin_methods=["save","print","on_bot_connect", "register_team"]
 Model.GetInstance()
 Model.GetInstance().market_=Market(10,dict([(c,BaseTrend(1000,100,abs(hash(c)))) for c in currencies_list]))
 Model.GetInstance().teams_=TeamsManager(currencies_list)
+Model.GetTeams().CreateTeam("TOKEN1","Team1")
+Model.GetTeams().CreateTeam("TOKEN2","Team2")
+Model.GetTeams().CreateTeam("TOKEN3","Team3")
 Model.GetInstance().graph_=Graph(10,Model.GetTeams())
 Model.GetInstance().news_feed_=NewsFeed(["2ch","4chan","habr"])
+Model.Run()
 
 #-=-=-=-=-=-=-=-=-=-=-=-(/GAVNO(+-100проц будет переписано))-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
@@ -40,10 +44,13 @@ with open("team_tokens.secret","r") as f:
 
 def reply(code,msg,token,data=None):
     if(data!=None):
-        return json.dumps({{"msg":msg,"code":code,"token":token,"data":data}})
+        return json.dumps({"msg":msg,"code":code,"token":token,"data":data})
     return json.dumps({"msg":msg,"code":code,"token":token});
 
+def sub_reply(code,msg,token):
+    return json.dumps({"crypto_currencies":[{"name":"fuckyou","price":0}]})
 #-=-=-=-=-=-=-=-=-=-=-=-(METHODS)=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+
 
 def save():
     pass #saves gamestate
@@ -57,13 +64,46 @@ async def register_team(websocket, token, team_name):
     Model.ReleaseLock();
     await websocket.send(reply(200,"Team "+team_name+" registered",token))
 
-# async def give_crypto(websocket, team_token, )
+async def give_crypto(websocket, token, team_name, cur, amount):
+    Model.AcquireLock()
+    Model.GetTeams().GetTeamByName(team_name).AddCryptoMoney(cur,float(amount),"admin")
+    Model.ReleaseLock()
+    await websocket.send(reply(200,"Added crypto",token))
+
+async def give_dollar(websocket, token, team_name, amount):
+    Model.AcquireLock()
+    Model.GetTeams().GetTeamByName(team_name).AddMoney(float(amount),"admin")
+    Model.ReleaseLock()
+    await websocket.send(reply(200,"Added dollar",token))
+
+# async def print_team
+
+async def transfer_money(websocket, token, team2, cur, amount):
+    Model.AcquireLock()
+    t1,t2=Model.GetTeams().GetTeam(token),Model.GetTeams().GetTeamByName(team2);
+    if(cur=="dollar"):
+        if(t1.AddMoneyCheck(-amount)):
+            t1.AddMoney(-amount)
+            t2.AddMoney(amount)
+        else:
+            await websocket.send(reply(228,"Not enough dollars",token))
+            Model.ReleaseLock()
+            return
+    if(cur in currencies_list):
+        if(t1.AddCryptoCheck(cur,-amount)):
+            t1.AddCrypto(-amount)
+            t2.AddCrypto(amount)
+        else:
+            await websocket.send(reply(228,"Not enough dollars",token))
+            Model.ReleaseLock()
+            return
+    Model.ReleaseLock()
+    await websocket.send(reply(200,"Transfer successful",token))
 
 # async def give_money(websocket, team_token, t)
 async def on_bot_connect(websocket, token):
-    await websocket.send(reply(200,"OK",token,currencies_list))
-    return
-
+    await websocket.send(reply(200,"OK",token,{"teams":Model.GetTeams().GetTeamsNames(),"forums":[]}))
+    
 async def sell(websocket,name,amount):
     Model.AcquireLock();
     if Model.GetTeams().GetTeamByName(name).GetCryptoMoney():
@@ -75,6 +115,20 @@ async def buy(websocket,name,amount):
 async def change_node(node_id, new_state):
     pass
 
+async def subscribe_leaderboard(websocket, token):
+    def teams(r):
+        print("puk")
+        asyncio.run(websocket.send(sub_reply(3,"TEAM UPD",1)))
+        print("kak")
+    def market(r):
+        print("puk")
+        asyncio.run(websocket.send(sub_reply(1,"MARKET_UPD",3)))
+        print("kak")
+    Model.AcquireLock()
+    [Model.AddSubscription(Subscription(team,teams)) for team in Model.GetTeams().GetTeamsList()]
+    Model.AddSubscription(Subscription(Model.GetMarket(),market))
+    Model.ReleaseLock()
+    await websocket.send(reply(200,"Succsesfull subscribe",token))
 # async def 
 
 #-=-=-=-=-=-=-=-=-=-=-=-(/METHODS)-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
@@ -101,14 +155,14 @@ async def igra(websocket):
             await websocket.send(reply(1337,"shitty token",token))
             continue
 
-        if ("method" not in req) or not '''(req["method"] not in methods_list)''':
-            await websocket.send(reply(1337,"no/nonexistent token sent",token))
+        if ("method" not in req):
+            await websocket.send(reply(1337,"no method sent",token))
             continue
         else: method=req["method"]
 
-        if method in admin_methods and token not in admin_tokens:
-            await websocket.send(reply(1337,"method requires admin priviliges",token))
-            continue
+        # if method in admin_methods and token not in admin_tokens:
+        #     await websocket.send(reply(1337,"method requires admin priviliges",token))
+        #     continue
         
         if "args" in req:
             args=req["args"]
@@ -116,21 +170,13 @@ async def igra(websocket):
         if "kwargs" in req:
             kwargs=req["kwargs"]
 
-        if method=="ONCONNECT":
-            await on_bot_connect()
-        elif method=="print":
-            await printt()
-        # elif method=="CHANGE_MODE":
-        #     await change_mode()
-        elif method=="BUY":
-            await buy()
-        elif method=="register_team":
-            await register_team(websocket,token,args[0])
+        if(method in globals()):
+            await globals()[method](websocket,token,*args,**kwargs)
         else:
-            await websocket.send(reply(228,"Something really weird happened",token))
+            await websocket.send(reply(228,"No such method",token))
 
 async def main():
-    async with websockets.serve(igra, port=1337):
+    async with websockets.serve(igra, port=1337, ping_interval=None):
         await asyncio.Future()  # run forever
 
 asyncio.run(main())

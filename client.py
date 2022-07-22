@@ -2,9 +2,9 @@ import asyncio
 import websockets
 import json
 
-token=""
-with open("admin_tokens.secret") as f:
-    token=f.read().strip("\n ")
+token="TOKEN1"
+# with open("admin_tokens.secret") as f:
+#     token=f.read().strip("\n ")
 
 async def get_and_format_input():
     global token

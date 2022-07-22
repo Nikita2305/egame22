@@ -73,10 +73,12 @@ class TeamsManager:
         return self.teams_[token]
     def GetTeamByName(self, name):
         for t in self.teams_:
-            if t.GetName() == name:
-                return t
+            if self.teams_[t].GetName() == name:
+                return self.teams_[t]
         raise ValueError
     def CreateTeam(self, token, color, name=None):
         if name is None:
             name = "Team "+str(len(self.teams_)+1)
         self.teams_[token] = Team(token, name, self.currencies_, color)
+    def GetTeamsList(self):
+        return [self.teams_[x] for x in self.teams_]
