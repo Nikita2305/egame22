@@ -30,7 +30,7 @@ Model.GetInstance().teams_=TeamsManager(currencies_list)
 Model.GetTeams().CreateTeam("TOKEN1","Team1")
 Model.GetTeams().CreateTeam("TOKEN2","Team2")
 Model.GetTeams().CreateTeam("TOKEN3","Team3")
-Model.GetInstance().graph_=Graph(10,Model.GetTeams())
+Model.GetInstance().graph_=Graph(10,Model.GetTeams(),currencies_list)
 Model.GetInstance().news_feed_=NewsFeed(["2ch","4chan","habr"])
 Model.Run()
 
@@ -76,9 +76,13 @@ async def give_dollar(websocket, token, team_name, amount):
     Model.ReleaseLock()
     await websocket.send(reply(200,"Added dollar",token))
 
+async def info(websocket,token):
+    return json.dumps({"name":Model.GetTeams().GetTeam(token).GetName(),"money":{"name":"dollar","amount":Model.GetTeams().GetTeam(token).GetMoney()}+{{"name":cur,"amount":Model.GetTeams().GetTeam(token).GetCryptoMoney(cur)} for cur in currencies_list}})
+
 # async def print_team
 
-async def transfer_money(websocket, token, team2, cur, amount):
+async def transfer(websocket, token, team2, cur, amount):
+    amount=float(amount)
     Model.AcquireLock()
     t1,t2=Model.GetTeams().GetTeam(token),Model.GetTeams().GetTeamByName(team2);
     if(cur=="dollar"):
@@ -90,9 +94,9 @@ async def transfer_money(websocket, token, team2, cur, amount):
             Model.ReleaseLock()
             return
     if(cur in currencies_list):
-        if(t1.AddCryptoCheck(cur,-amount)):
-            t1.AddCrypto(-amount)
-            t2.AddCrypto(amount)
+        if(t1.AddCryptoMoneyCheck(cur,-amount)):
+            t1.AddCryptoMoney(cur,-amount)
+            t2.AddCryptoMoney(cur,amount)
         else:
             await websocket.send(reply(228,"Not enough dollars",token))
             Model.ReleaseLock()
@@ -117,13 +121,12 @@ async def change_node(node_id, new_state):
 
 async def subscribe_leaderboard(websocket, token):
     def teams(r):
-        print("puk")
-        asyncio.run(websocket.send(sub_reply(3,"TEAM UPD",1)))
-        print("kak")
+        print("team callback triggered")
+        return
+        asyncio.run(websocket.send(sub_reply(3,"TEAM_UPD",1)))
     def market(r):
-        print("puk")
-        asyncio.run(websocket.send(sub_reply(1,"MARKET_UPD",3)))
-        print("kak")
+        print("market callback triggered")
+        asyncio.run(websocket.send(json.dumps({"crypto_currencies":[{"name":x,"price":y} for x,y in ((name,Model.GetMarket().GetExchangeRate(name)) for name in currencies_list)]})))
     Model.AcquireLock()
     [Model.AddSubscription(Subscription(team,teams)) for team in Model.GetTeams().GetTeamsList()]
     Model.AddSubscription(Subscription(Model.GetMarket(),market))
