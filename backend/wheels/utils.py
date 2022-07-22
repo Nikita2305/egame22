@@ -115,7 +115,8 @@ def GraphGenerator(nteams,
                    n_outer_edges,
                    n_core_edges,
                    n_links,
-                   seed=1223123):
+                   seed=1223123,
+                   debug=False):
     rng = np.random.default_rng(seed)
     outer_sector_v = []
     max_angle = 2*np.pi/nteams
@@ -129,9 +130,9 @@ def GraphGenerator(nteams,
         if not check_triangles_altitudes(vv,outer_sector_v,1):
             continue
         outer_sector_v.append(vv)
-        print(str(len(outer_sector_v))+"-th vertex generated")
     outer_sector_e = generate_edges(outer_sector_v, n_outer_edges)
-    plot_graph(outer_sector_v,outer_sector_e)
+    if debug:
+        plot_graph(outer_sector_v,outer_sector_e)
     
     core_sector_v = []
     while len(core_sector_v) != n_core_vert_per_team:
@@ -142,9 +143,9 @@ def GraphGenerator(nteams,
         if not check_triangles_altitudes(vv,core_sector_v,1):
             continue
         core_sector_v.append(vv)
-        print(str(len(outer_sector_v))+"-th vertex generated")
     core_sector_e = generate_edges(core_sector_v, n_core_edges)
-    plot_graph(core_sector_v,core_sector_e)
+    if debug:
+        plot_graph(core_sector_v,core_sector_e)
     
     possible_edges = []
     for vc in core_sector_v:
@@ -162,7 +163,8 @@ def GraphGenerator(nteams,
     sector_e = list(core_sector_e)
     sector_e += outer_sector_e
     sector_e += possible_edges[0:1]
-    plot_graph(sector_v,sector_e)
+    if debug:
+        plot_graph(sector_v,sector_e)
     l = len(sector_v)
     sectors_v = [sector_v]
     sectors_e = [sector_e]
@@ -222,7 +224,8 @@ def GraphGenerator(nteams,
         vv[i].i = i
     ee = sum(sectors_e,[])
     
-    plot_graph(vv,ee, links_e)
+    if debug:
+        plot_graph(vv,ee, links_e)
     
     ee += links_e
     return (vv,ee)
