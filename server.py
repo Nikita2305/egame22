@@ -2,6 +2,7 @@ from ast import Mod
 from glob import glob
 from django.forms import ModelForm
 from backend.model import Model
+from backend.text_generation.posting import Floodilka
 from backend.wheels.routine import Executable, Routine
 from backend.wheels.subscriptable import Subscription, Subscriptable, notifier
 from backend.graph import Graph
@@ -11,6 +12,7 @@ from backend.newsfeed import NewsFeed
 from backend.teams import Team, TeamsManager
 from backend.war import WarManager, War
 from backend.wheels.utils import GraphGenerator
+from backend.events import EventManager
 import asyncio
 import websockets
 import json
@@ -22,7 +24,7 @@ team_tokens=[]
 
 methods_list=[]
 admin_methods=["save","print","on_bot_connect", "register_team", "subscribe_leaderboard","post"]
-
+forums=["2ch","4chan","habr"]
 
 #-=-=-=-=-=-=-=-=-=-=-=-(GAVNO(+-100проц будет переписано))=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
@@ -81,7 +83,10 @@ Model.GetInstance().wars_ = WarManager(servers,120)
 
 Model.GetInstance().events_ = EventManager()
 
-Model.GetInstance().news_feed_=NewsFeed(["2ch","4chan","habr"])
+Model.GetInstance().news_feed_=NewsFeed(forums)
+for name in forums:
+    Model.ScheduleRoutine(Routine(Floodilka(name),1))
+
 Model.Run()
 
 #-=-=-=-=-=-=-=-=-=-=-=-(/GAVNO(+-100проц будет переписано))-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
@@ -133,9 +138,14 @@ async def give(websocket, token,team_name,cur,amount):
         await give_crypto(websocket,token,team_name,cur,amount)
     else:
         await websocket.send(reply(228,"HEHEH",token))
-        
+
 async def info(websocket,token):
-    return json.dumps({"name":Model.GetTeams().GetTeam(token).GetName(),"money":{"name":"dollar","amount":Model.GetTeams().GetTeam(token).GetMoney()}+{{"name":cur,"amount":Model.GetTeams().GetTeam(token).GetCryptoMoney(cur)} for cur in currencies_list}})
+    await websocket.send(reply(200,"OK",token,json.dumps({"name":Model.GetTeams().GetTeam(token).GetName(),"money":[{"name":"dollar","amount":Model.GetTeams().GetTeam(token).GetMoney()}]+[{"name":cur,"amount":Model.GetTeams().GetTeam(token).GetCryptoMoney(cur)} for cur in currencies_list],"nodes":[{"id":node.get_id(),"state":node.get_type(),"power":node.get_power()} for node in Model.GetGraph().get_servers_by_owners(Model.GetTeams().GetTeam(token))]})))
+
+# async def upgrade(websocket,token,node_id):
+#     Model.AcquireLock()
+#     if(Model.GetTeams().GetTeam(token).AddMoneyCheck(-Model.GetGraph().find_server(id)))
+#     Model.GetGraph().upgrade_server(node_id,Model.GetGraph().find_server(id).get_power()*1.5)
 
 # async def print_team
 
@@ -210,7 +220,16 @@ async def subscribe_leaderboard(websocket, token):
     await websocket.send(reply(200,"Succsesfull subscribe",token))
 
 async def subscribe_graph(websocket, token):
-    asyncio.create_task(websocket.send(json.dumps({"nodes":[{"id":node.get_id(),"positionX":node.get_x(),"positionY":node.get_y(),"power":node.get_power(),"defense":node.get_power()*node.get_k(),"type":node.get_type(),"level":node.get_level(),"color":node.get_owner().GetColor() if node.get_owner() is not None else None} for node in Model.GetGraph().get_vertexes()],"edges":[]})))
+    def form_json():
+        return json.dumps(
+                    {
+                        "nodes":[{"id":node.get_id(),"positionX":node.get_x(),"positionY":node.get_y(),"power":node.get_power(),"defense":node.get_power()*node.get_k(),"type":node.get_type(),"level":node.get_level(),"color":node.get_owner().GetColor() if node.get_owner() is not None else None} for node in Model.GetGraph().get_vertexes()],
+                        "edges":[{"source":e[0],"target":e[1]} for e in Model.GetGraph().get_edges()],
+                        "timers":[{"source":w.get_attaker(),"target":w.get_defender(),"timer":Model.GetWarManager().get_war_routine(w).GetRemainingTime()} for w in Model.GetWarManager().get_wars()]
+                    })
+    Model.AcquireLock()
+    asyncio.create_task(websocket.send(form_json()))
+    Model.ReleaseLock()
     class graph(Executable):
         def __init__(self):
             super().__init__()
@@ -222,7 +241,9 @@ async def subscribe_graph(websocket, token):
                 Model.EraseSubscription(self.sub)
                 Model.ReleaseLock()
             else:
-                asyncio.run(websocket.send(json.dumps({"nodes":[{"id":node.get_id(),"positionX":node.get_x(),"positionY":node.get_y(),"power":node.get_power(),"defense":node.get_power()*node.get_k(),"type":node.get_type(),"level":node.get_level(),"color":node.get_owner().GetColor() if node.get_owner() is not None else None} for node in Model.GetGraph().get_vertexes()],"edges":[]})))
+                Model.AcquireLock()
+                asyncio.run(websocket.send(form_json()))
+                Model.ReleaseLock()
     
     Model.AcquireLock()
     G = graph()
@@ -231,6 +252,15 @@ async def subscribe_graph(websocket, token):
     Model.AddSubscription(S)
     Model.ReleaseLock()
     await websocket.send(reply(200,"successfull subscribe",token))
+
+async def post(websocket,token, forum, author, header, body):
+    Model.AcquireLock();
+    Model.GetNewsFeed().SendPost(forum, author, header, body)
+    Model.ReleaseLock()
+    await websocket.send(reply(200,"post posted",token))
+
+async def get_posts(websocket,token,forum):
+    await websocket.send(reply(200,"posts acuireseded",token,[{"name":post.GetHeader(),"text":post.GetBody(),"author":post.GetAuthor()} for post in Model.GetNewsFeed().GetPosts(forum)]))
 
 #-=-=-=-=-=-=-=-=-=-=-=-(/METHODS)-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 

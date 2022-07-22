@@ -32,7 +32,7 @@ class WarManager:
         ret = []
         for d in self.__wars:
             sum(self.__wars[d],ret)
-        return
+        return ret
     
     def get_war_routine(self, war):
         return self.__war_routines[war]

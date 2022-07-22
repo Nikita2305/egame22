@@ -105,5 +105,5 @@ class TextGenerator:
                 continue
             ret = []
             for i in range(n):
-                ret += [tokens[random.randint(0, len(tokens) - 1]]
+                ret += [tokens[random.randint(0, len(tokens) - 1)]]
             return ret

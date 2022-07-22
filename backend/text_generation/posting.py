@@ -1,4 +1,6 @@
+import os
 from backend.text_generation.rus_text_generator import TextGenerator
+from backend.wheels.routine import Executable, Routine
 from backend.model import Model
 
 class Floodilka (Executable):
@@ -11,7 +13,7 @@ class Floodilka (Executable):
 
     def __call__(self, routine):
         Model.AcquireLock()
-        Model.GetNewsFeed().SendPost(forum_number, " ".join(self.text_generator.get_words(2)), " ".join(self.text_generator.get_words(3)), self.text_generator.get_cute_text(500))
+        Model.GetNewsFeed().SendPost(self.forum_number, " ".join(self.text_generator.get_words(2)), " ".join(self.text_generator.get_words(3)), self.text_generator.get_cute_message(500))
         Model.ScheduleRoutine(routine)
         Model.ReleaseLock()
           
