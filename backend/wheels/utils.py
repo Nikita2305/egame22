@@ -17,16 +17,17 @@ WHILE nodes with no connected edges
 """
 
 class Vert:
-    def __init__(self,x,y,i=0):
+    def __init__(self,x,y,i=0,power=100):
         self.x = x
         self.y = y
         self.i = i
+        self.power = power
     def rotate(self,angle):
-        return Vert(self.x*np.cos(angle)-self.y*np.sin(angle), self.x*np.sin(angle)+self.y*np.cos(angle), self.i)
+        return Vert(self.x*np.cos(angle)-self.y*np.sin(angle), self.x*np.sin(angle)+self.y*np.cos(angle), self.i, self.power)
     def distance_sq(self,o):
         return (self.x-o.x)**2+(self.y-o.y)**2
     def __str__(self):
-        return "("+str(self.x)+","+str(y)+")"
+        return "("+str(self.x)+","+str(self.y)+"["+str(self.i)+","+str(self.power)+"])"
     def triangle_area(self,v2,v3):
         x1, y1, x2, y2, x3, y3 = self.x, self.y, v2.x, v2.y, v3.x, v3.y
         return abs(0.5 * (((x2-x1)*(y3-y1))-((x3-x1)*(y2-y1))))
@@ -167,6 +168,7 @@ def GraphGenerator(nteams,
     sectors_e = [sector_e]
     for i in range(l):
         sector_v[i].i = i
+        sector_v[i].power = rng.poisson(50)*2
     
     for i in range(1,nteams):
         sectors_v.append([])
