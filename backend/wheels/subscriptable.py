@@ -9,7 +9,7 @@ class Subscriptable:
         self.mutex_ = threading.Lock()
     
     def __getstate__(self):
-        state = self.__dict__.copy()
+        state = self.__dict__
         return state
 
     def __setstate__(self, state):

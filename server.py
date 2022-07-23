@@ -92,12 +92,15 @@ for name in forums:
     Model.ScheduleRoutine(Routine(Floodilka("2ch"), 30))
 
 time.sleep(2)
-Model.ScheduleRoutine(RepeatedRoutine(Dumper("state"),10))
+#Model.ScheduleRoutine(RepeatedRoutine(Dumper("state"),10))
+
+#restore("state141.save")
 
 time.sleep(2)
+
 Model.Run()
 
-#restore("state201.save")
+
 
 #-=-=-=-=-=-=-=-=-=-=-=-(/GAVNO(+-100проц будет переписано))-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
@@ -237,8 +240,8 @@ async def sell(websocket,token,cur,amount):
     amount=float(amount)
     Model.AcquireLock();
     if Model.GetTeams().GetTeam(token).AddCryptoMoneyCheck(cur,-amount):
-        Model.GetTeams().GetTeam(token).AddMoney(amount*Model.GetMarket().GetExchangeRate(cur))
-        Model.GetTeams().GetTeam(token).AddCryptoMoney(cur,-amount)
+        Model.GetTeams().GetTeam(token).AddMoney(amount*Model.GetMarket().GetExchangeRate(cur),"crypto sell")
+        Model.GetTeams().GetTeam(token).AddCryptoMoney(cur,-amount,"crypto sell")
         Model.ReleaseLock()
         await websocket.send(reply(200,"Crypto exchanged",token))
     else:
@@ -270,14 +273,14 @@ async def swap_nodes(websocket, token, node1, node2):
 async def buy(websocket,token,cur,amount):
     amount=float(amount)
     Model.AcquireLock();
-    if Model.GetTeams().GetTeam(token).AddCryptoMoneyCheck(cur,-amount):
-        Model.GetTeams().GetTeam(token).AddMoney(amount/Model.GetMarket().GetExchangeRate(cur))
-        Model.GetTeams().GetTeam(token).AddCryptoMoney(cur,-amount,reason="currency exchange")
+    if Model.GetTeams().GetTeam(token).AddMoneyCheck(-amount*Model.GetMarket().GetExchangeRate(cur)):
+        Model.GetTeams().GetTeam(token).AddMoney(-amount*Model.GetMarket().GetExchangeRate(cur),reason="crypto buy")
+        Model.GetTeams().GetTeam(token).AddCryptoMoney(cur,amount,reason="crypto buy")
         Model.ReleaseLock()
         await websocket.send(reply(200,"Crypto exchanged",token))
     else:
         Model.ReleaseLock()
-        await websocket.send(reply(228,"Not enough crypto",token))
+        await websocket.send(reply(228,"Not enough dollars",token))
 
 async def reclassify(websocket, token, node_id, new_state):
     node_id=int(node_id)
@@ -444,9 +447,9 @@ async def igra(websocket):
             continue
         else: method=req["method"]
 
-        # if method in admin_methods and token not in admin_tokens:
-        #     await websocket.send(reply(1337,"method requires admin priviliges",token))
-        #     continue
+        if method in admin_methods and token not in admin_tokens:
+            await websocket.send(reply(1337,"method requires admin priviliges",token))
+            continue
         
         if "args" in req:
             args=req["args"]
