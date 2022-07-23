@@ -23,7 +23,7 @@ admin_tokens=[]
 team_tokens=[]
 
 methods_list=[]
-admin_methods=["save","print","on_bot_connect", "register_team", "subscribe_leaderboard"]
+admin_methods=["save","print","on_bot_connect", "register_team", "subscribe_leaderboard", "post", "launch_event"]
 forums=["2ch","4chan","habr"]
 
 #-=-=-=-=-=-=-=-=-=-=-=-(GAVNO(+-100проц будет переписано))=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
@@ -84,14 +84,9 @@ Model.GetInstance().wars_ = WarManager(servers,120)
 Model.GetInstance().events_ = EventManager()
 
 Model.GetInstance().news_feed_=NewsFeed(forums)
-<<<<<<< HEAD
 # for name in forums:
 #     Model.ScheduleRoutine(Routine(Floodilka(name),1))
 
-=======
-#for name in forums:
-#    Model.ScheduleRoutine(Routine(Floodilka(name),1))
->>>>>>> f0394a700381dc80cbc2596cbaad25efb74dbc35
 
 Model.Run()
 
@@ -155,6 +150,37 @@ async def info(websocket,token):
 
 # async def print_team
 
+async def launch_event(websocket, token, event_name):
+    Model.AcquireLock()
+    ok = True
+    try:
+        Model.GetEventManager().LoadEvent(event_name)
+        Model.GetEventManager().LaunchEvent(event_name)
+    except:
+        ok = False
+    finally:
+        Model.ReleaseLock()
+
+    if ok:
+        await websocket.send(reply(200,"OK",token))
+    else:
+        await websocket.send(reply(228,"error",token))
+
+async def stop_event(websocket, token, event_name):
+    Model.AcquireLock()
+    ok = True
+    try:
+        Model.GetEventManager().StopEvent(event_name)
+    except:
+        ok = False
+    finally:
+        Model.ReleaseLock()
+
+    if ok:
+        await websocket.send(reply(200,"OK",token))
+    else:
+        await websocket.send(reply(228,"error",token))
+
 async def transfer(websocket, token, team2, cur, amount):
     amount=float(amount)
     Model.AcquireLock()
@@ -206,8 +232,6 @@ async def buy(websocket,token,cur,amount):
         Model.ReleaseLock()
         await websocket.send(reply(228,"Not enough crypto",token))
 
-
-<<<<<<< HEAD
 async def reclassify(websocket, token, node_id, new_state):
     Model.AcquireLock()
     if node_id not in [node.get_id() for node in Model.GetGraph().get_servers_by_owners(Model.GetTeams().GetTeam(token))]:
@@ -223,8 +247,6 @@ async def reclassify(websocket, token, node_id, new_state):
 
     await websocket.send(reply(200,"OK",token)) 
 
-=======
->>>>>>> f0394a700381dc80cbc2596cbaad25efb74dbc35
 async def subscribe_leaderboard(websocket, token):
     def teams(r):
         print("team callback triggered")
@@ -285,7 +307,7 @@ async def subscribe_forum(websocket,token,forum):
     await websocket.send(reply(200,"successfull subscribe",token))
 
 async def post(websocket,token, forum, author, header, body):
-    Model.AcquireLock();
+    Model.AcquireLock()
     Model.GetNewsFeed().SendPost(forum, author, header, body)
     Model.ReleaseLock()
     await websocket.send(reply(200,"post posted",token))
