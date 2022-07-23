@@ -228,6 +228,10 @@ def GraphGenerator(nteams,
         plot_graph(vv,ee, links_e)
     
     ee += links_e
+    for v in vv:
+        v.x = float(v.x)
+        v.y = float(v.y)
+        v.power = float(v.power)
     return (vv,ee)
 
 
