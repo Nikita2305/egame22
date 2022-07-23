@@ -43,6 +43,10 @@ class Team (Subscriptable):
     def AddActions(self, amount, reason="unknown"):
         self.actions_ += amount
         self.log_.append(LogEntry("actions",reason,amount))
+    @notifier
+    def SetActions(self, amount, reason="unknown"):
+        self.actions_ = amount
+        self.log_.append(LogEntry("actions",reason,amount))
     def AddActionsCheck(self, amount):
         return self.actions_ + amount >= 0
     

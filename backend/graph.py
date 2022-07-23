@@ -37,7 +37,7 @@ class Graph(Subscriptable, Executable):
                 new_resources[v.get_owner()][v.get_type()] += v.get_crypto_money()
 
         for t in teams:
-            t.AddActions(new_resources[t]["actions"])
+            t.SetActions(new_resources[t]["actions"]+4,reason="restore") #reset actions, 4 -- default without ssh 
             for c in self.__curr:
                 t.AddCryptoMoney(c, new_resources[t][c], "mining")
 

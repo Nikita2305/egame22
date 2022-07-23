@@ -2,6 +2,7 @@ import backend.model
 from backend.wheels.schedulers import ThreadScheduler
 import time
 import threading
+import traceback
 
 class Executable:
     
@@ -54,8 +55,13 @@ class Routine:
     def Execute(self): 
         self.mutex_.acquire()
         self.executed_ = True
-        self.executable_(self)
-        self.mutex_.release()
+        try:
+            self.executable_(self)
+        except Exception as e:
+            print(traceback.format_exc())
+            print(self.executable_)
+        finally: 
+            self.mutex_.release()
         backend.model.Model.AcquireLock()
         backend.model.Model.EraseRoutine(self) # Erase at most one of several possible equal Routines
         backend.model.Model.ReleaseLock(schedule_subscriptions=False)

@@ -97,7 +97,7 @@ Model.ScheduleRoutine(RepeatedRoutine(Dumper("state"),10))
 time.sleep(2)
 Model.Run()
 
-restore("state201.save")
+#restore("state201.save")
 
 #-=-=-=-=-=-=-=-=-=-=-=-(/GAVNO(+-100проц будет переписано))-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
@@ -270,9 +270,9 @@ async def swap_nodes(websocket, token, node1, node2):
 async def buy(websocket,token,cur,amount):
     amount=float(amount)
     Model.AcquireLock();
-    if Model.GetTeams().GetTeam(token).AddCryptoMoney(-amount):
+    if Model.GetTeams().GetTeam(token).AddCryptoMoneyCheck(cur,-amount):
         Model.GetTeams().GetTeam(token).AddMoney(amount/Model.GetMarket().GetExchangeRate(cur))
-        Model.GetTeams().GetTeam(token).AddCryptoMoney(-amount)
+        Model.GetTeams().GetTeam(token).AddCryptoMoney(cur,-amount,reason="currency exchange")
         Model.ReleaseLock()
         await websocket.send(reply(200,"Crypto exchanged",token))
     else:

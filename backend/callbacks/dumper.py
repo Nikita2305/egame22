@@ -2,6 +2,9 @@ from backend.model import Model
 from backend.wheels.routine import Executable
 import jsonpickle
 import threading
+import jsonpickle.ext.numpy as jsonpickle_numpy
+
+jsonpickle_numpy.register_handlers()
 
 class MutexHandler (jsonpickle.handlers.BaseHandler):
     def flatten(obj, data):

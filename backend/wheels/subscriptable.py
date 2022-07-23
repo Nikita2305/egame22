@@ -51,8 +51,12 @@ class Subscription:
     def InactivateSubject(self):
         self.subscriptable_.Unmark()
 
-    def IsActive(self): 
-        return self.subscriptable_.IsMarked() 
+    def IsActive(self):
+        try:
+            return self.subscriptable_.IsMarked() 
+        except Exception as e:
+            print(self,"and",self.subscriptable_)
+            raise e
 
     def GetRoutine(self):
         return self.routine_
