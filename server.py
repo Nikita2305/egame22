@@ -3,7 +3,7 @@ from glob import glob
 from django.forms import ModelForm
 from backend.model import Model
 from backend.text_generation.posting import Floodilka
-from backend.wheels.routine import Executable, Routine
+from backend.wheels.routine import Executable, Routine, RepeatedRoutine
 from backend.wheels.subscriptable import Subscription, Subscriptable, notifier
 from backend.graph import Graph
 from backend.server import Server
@@ -13,11 +13,13 @@ from backend.teams import Team, TeamsManager
 from backend.war import WarManager, War
 from backend.wheels.utils import GraphGenerator
 from backend.events import EventManager
+from backend.callbacks.dumper import Dumper, restore
 import asyncio
 import websockets
 import json
 import time
 import jsonpickle
+import time
 from random import randint
 
 admin_tokens=[]
@@ -90,8 +92,12 @@ for name in forums:
     Model.ScheduleRoutine(Routine(Floodilka("2ch"), 30))
 
 time.sleep(2)
+Model.ScheduleRoutine(RepeatedRoutine(Dumper("state"),10))
 
+time.sleep(2)
 Model.Run()
+
+restore("state201.save")
 
 #-=-=-=-=-=-=-=-=-=-=-=-(/GAVNO(+-100проц будет переписано))-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
@@ -300,14 +306,17 @@ async def reclassify(websocket, token, node_id, new_state):
 async def subscribe_leaderboard(websocket, token):
     def teams(r):
         print("team callback triggered")
-        asyncio.run(websocket.send(json.dumps({"teams":[{"name":team.GetName(),"color":team.GetColor(),"balance":team.GetMoney()} for team in Model.GetTeams().GetTeamsList()]})))
+        asyncio.run(websocket.send(json.dumps({
+            "teams":[{"name":team.GetName(),"color":team.GetColor(),"balance":team.GetMoney()} for team in Model.GetTeams().GetTeamsList()],
+            "unitTimer":Model.GetGraph().get_routine().GetRemainingTime()
+        })))
     def market(r):
         print("market callback triggered")
         asyncio.run(websocket.send(json.dumps({"crypto_currencies":[{"name":x,"price":y} for x,y in ((name,Model.GetMarket().GetExchangeRate(name)) for name in currencies_list)]})))
     Model.AcquireLock()
     [Model.AddSubscription(Subscription(team,teams)) for team in Model.GetTeams().GetTeamsList()]
     Model.AddSubscription(Subscription(Model.GetMarket(),market))
-    asyncio.create_task(websocket.send(json.dumps({"teams":[{"name":team.GetName(),"color":team.GetColor(),"balance":team.GetMoney()} for team in Model.GetTeams().GetTeamsList()]})))
+    asyncio.create_task(websocket.send(json.dumps({"teams":[{"name":team.GetName(),"color":team.GetColor(),"balance":team.GetMoney()} for team in Model.GetTeams().GetTeamsList()],"unitTimer":Model.GetGraph().get_routine().GetRemainingTime()})))
     asyncio.create_task(websocket.send(json.dumps({"crypto_currencies":[{"name":x,"price":y} for x,y in ((name,Model.GetMarket().GetExchangeRate(name)) for name in currencies_list)]})))
     Model.ReleaseLock()
     await websocket.send(reply(200,"Succsesfull subscribe",token))

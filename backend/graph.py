@@ -9,15 +9,15 @@ from backend.server import Server
 
 
 class Graph(Subscriptable, Executable):
-    __graph = {}
 
     def __init__(self, tick, teams_manager, currencies_bases_dict):
         super().__init__()
+        self.__graph = {}
         self.__curr = currencies_bases_dict
         self.__teams_manager = teams_manager
         self.__tick = tick
-        r = Routine(self, self.__tick)
-        Model.ScheduleRoutine(r)
+        self.__routine = Routine(self, self.__tick)
+        Model.ScheduleRoutine(self.__routine)
 
     @notifier_with_model_lock
     def __call__(self, routine):
@@ -157,6 +157,9 @@ class Graph(Subscriptable, Executable):
             return 0
         defending_server.set_owner(attacking_server.get_owner())
         return 1
+    
+    def get_routine(self):
+        return self.__routine
 
     def print(self):
         print(self)

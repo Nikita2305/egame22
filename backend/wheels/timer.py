@@ -12,6 +12,15 @@ class Timer:
         self.time_ = 0
         self.stopped_ = False
         self.mutex_ = threading.Lock()
+    
+    def __getstate__(self):
+        state = self.__dict__.copy()
+        return state
+
+    def __setstate__(self, state):
+        self.__dict__.update(state)
+        if self.mutex_.locked():
+            self.mutex_.release()
 
     def GetTime(self):
         return self.time_
