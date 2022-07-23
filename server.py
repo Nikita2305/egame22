@@ -275,7 +275,10 @@ async def reclassify(websocket, token, node_id, new_state):
 async def subscribe_leaderboard(websocket, token):
     def teams(r):
         print("team callback triggered")
-        asyncio.run(websocket.send(json.dumps({"teams":[{"name":team.GetName(),"color":team.GetColor(),"balance":team.GetMoney()} for team in Model.GetTeams().GetTeamsList()]})))
+        asyncio.run(websocket.send(json.dumps({
+            "teams":[{"name":team.GetName(),"color":team.GetColor(),"balance":team.GetMoney()} for team in Model.GetTeams().GetTeamsList()],
+            "unitTimer":Model.GetGraph().get_routine().GetRemainingTime()
+        })))
     def market(r):
         print("market callback triggered")
         asyncio.run(websocket.send(json.dumps({"crypto_currencies":[{"name":x,"price":y} for x,y in ((name,Model.GetMarket().GetExchangeRate(name)) for name in currencies_list)]})))

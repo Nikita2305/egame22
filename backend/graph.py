@@ -16,8 +16,8 @@ class Graph(Subscriptable, Executable):
         self.__curr = currencies_bases_dict
         self.__teams_manager = teams_manager
         self.__tick = tick
-        r = Routine(self, self.__tick)
-        Model.ScheduleRoutine(r)
+        self.__routine = Routine(self, self.__tick)
+        Model.ScheduleRoutine(self.__routine)
 
     @notifier_with_model_lock
     def __call__(self, routine):
@@ -153,6 +153,9 @@ class Graph(Subscriptable, Executable):
             return 0
         defending_server.set_owner(attacking_server.get_owner())
         return 1
+    
+    def get_routine():
+        return self.__routine
 
     def print(self):
         print(self)
