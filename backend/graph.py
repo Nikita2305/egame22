@@ -112,6 +112,10 @@ class Graph(Subscriptable, Executable):
                 servers.append(v)
         return servers
 
+    @notifier
+    def notify(self):
+        pass
+
     def find_server(self, id):
         for v in self.__graph.keys():
             if v.get_id() == id:

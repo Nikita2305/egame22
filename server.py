@@ -163,13 +163,17 @@ async def upgrade(websocket,token,node_id):
 async def launch_event(websocket, token, event_name):
     Model.AcquireLock()
     ok = True
-    try:
-        Model.GetEventManager().LoadEvent(event_name)
-        Model.GetEventManager().LaunchEvent(event_name)
-    except:
-        ok = False
-    finally:
-        Model.ReleaseLock()
+    # try:
+    #     Model.GetEventManager().LoadEvent(event_name)
+    #     Model.GetEventManager().LaunchEvent(event_name)
+    # except Exception as e:
+    #     print(e)
+    #     ok = False
+    # finally:
+    #     Model.ReleaseLock()
+
+    Model.GetEventManager().LoadEvent(event_name)
+    Model.GetEventManager().LaunchEvent(event_name)
 
     if ok:
         await websocket.send(reply(200,"OK",token))
@@ -218,6 +222,11 @@ async def transfer(websocket, token, team2, cur, amount):
 async def on_bot_connect(websocket, token):
     await websocket.send(reply(200,"OK",token,{"teams":Model.GetTeams().GetTeamsNames(),"forums":forums,"currencies":currencies_list}))
     
+
+async def stop_game(websocket,token):
+    pass
+
+
 async def sell(websocket,token,cur,amount):
     amount=float(amount)
     Model.AcquireLock();
@@ -276,10 +285,10 @@ async def reclassify(websocket, token, node_id, new_state):
         print(Model.GetTeams().GetTeam(token).GetActions())
         Model.ReleaseLock()
         return await websocket.send(reply(209,"not enough actions",token))
-    
+
     Model.GetGraph().find_server(node_id).set_type(new_state)
     Model.GetTeams().GetTeam(token).AddActions(-1)
-
+    Model.GetGraph().notify()
     Model.ReleaseLock()
 
     await websocket.send(reply(200,"OK",token)) 
@@ -359,7 +368,18 @@ async def get_posts(websocket,token,forum):
 async def attack(websocket,token,id_from,id_to):
     id_from,id_to=int(id_from),int(id_to)
     Model.AcquireLock()
+    if id_from not in [node.get_id() for node in Model.GetGraph().get_servers_by_owners(Model.GetTeams().GetTeam(token))]:
+        Model.ReleaseLock()
+        return await websocket.send(reply(208,"Loh",token))
+
+    if not Model.GetTeams().GetTeam(token).AddActionsCheck(-1):
+        print(Model.GetTeams().GetTeam(token).GetActions())
+        Model.ReleaseLock()
+        return await websocket.send(reply(209,"not enough actions",token))
+
     Model.GetWarManager().start_war(Model.GetGraph().find_server(id_from),Model.GetGraph().find_server(id_to))
+    Model.GetGraph().find_server(id_from).set_type("attack")
+    Model.GetTeams().GetTeam(token).AddActions(-1)
 
     Model.ReleaseLock()
     await websocket.send(reply(200,"war started!",token))
@@ -367,7 +387,9 @@ async def attack(websocket,token,id_from,id_to):
 async def cancel_attack(websocket,token,id_from,id_to):
     id_from,id_to=int(id_from),int(id_to)
     Model.AcquireLock()
+
     Model.GetWarManager().stop_war(Model.GetWarManager().get_war(Model.GetGraph().find_server(id_from),Model.GetGraph().find_server(id_to)))
+
     Model.ReleaseLock()
     await websocket.send(reply(200,"war cancelled!",token))
 
