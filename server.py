@@ -220,6 +220,15 @@ async def sell(websocket,token,cur,amount):
         Model.ReleaseLock()
         await websocket.send(reply(228,"Not enough crypto",token))
 
+
+async def remove_node(websocket, token, node_id):
+    Model.AcquireLock()
+    Model.GetGraph().find_server(node_id).turn_off()
+    Model.ReleaseLock()
+    
+    await websocket.send(reply(200,"OK",token))
+
+
 async def buy(websocket,token,cur,amount):
     amount=float(amount)
     Model.AcquireLock();
