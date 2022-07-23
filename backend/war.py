@@ -8,20 +8,23 @@ from backend.graph import Graph
 import time
 
 
-class WarManager:
+class WarManager(Subscriptable):
     __wars = {} # {defender: [wars]}
     __war_routines = {} # {war: routine}
 
     def __init__(self, servers, tick):
+        super().__init__()
         for s in servers:
             self.__wars[s] = []
             self.__tick = tick
 
+    @notifier
     def stop_war(self, war):
         Model.EraseRoutine(self.__war_routines[war])
         self.end_war(war)
 
     # бесполезная
+    @notifier
     def end_war(self, war):
         self.__wars[war.get_defender()].remove(war)
         del self.__war_routines[war]
@@ -54,12 +57,14 @@ class WarManager:
                 return war
         return None
 
+    @notifier
     def shift_local_wars(self, war):
         local_wars = self.get_local_wars(war.get_defender())
         for w in local_wars:
             routine = self.__war_routines[w]
             routine.SetAddTime(self.__tick + routine.GetAddTime())
 
+    @notifier
     def start_war(self, attacker: Server, defender: Server):
         new_war = War(attacker, defender, self)
         self.__wars[defender].append(new_war)

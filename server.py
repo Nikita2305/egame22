@@ -141,7 +141,7 @@ async def give(websocket, token,team_name,cur,amount):
         await websocket.send(reply(228,"HEHEH",token))
 
 async def info(websocket,token):
-    await websocket.send(reply(200,"OK",token,json.dumps({"name":Model.GetTeams().GetTeam(token).GetName(),"money":[{"name":"dollar","amount":Model.GetTeams().GetTeam(token).GetMoney()}]+[{"name":cur,"amount":Model.GetTeams().GetTeam(token).GetCryptoMoney(cur)} for cur in currencies_list],"nodes":[{"id":node.get_id(),"state":node.get_type(),"power":node.get_power()} for node in Model.GetGraph().get_servers_by_owners(Model.GetTeams().GetTeam(token))]})))
+    await websocket.send(reply(200,"OK",token,json.dumps({"name":Model.GetTeams().GetTeam(token).GetName(),"money":[{"name":"dollar","amount":Model.GetTeams().GetTeam(token).GetMoney()}]+[{"name":cur,"amount":Model.GetTeams().GetTeam(token).GetCryptoMoney(cur)} for cur in currencies_list],"nodes":[{"id":node.get_id(),"state":node.get_type(),"power":node.get_power()} for node in Model.GetGraph().get_servers_by_owners(Model.GetTeams().GetTeam(token))],"niggers":Model.GetTeams().GetTeam(token).GetActions()})))
 
 async def upgrade(websocket,token,node_id):
     Model.AcquireLock()
@@ -210,17 +210,20 @@ async def buy(websocket,token,cur,amount):
 
 
 async def reclassify(websocket, token, node_id, new_state):
+    node_id=int(node_id)
     Model.AcquireLock()
     if node_id not in [node.get_id() for node in Model.GetGraph().get_servers_by_owners(Model.GetTeams().GetTeam(token))]:
+        # print([node.get_id() for node in Model.GetGraph().get_servers_by_owners(Model.GetTeams().GetTeam(token))])
         Model.ReleaseLock()
         return await websocket.send(reply(208,"not your node",token))
 
-    if not Model.GetTeams.GetTeam(token).AddActionsCheck(-1):
+    if not Model.GetTeams().GetTeam(token).AddActionsCheck(-1):
+        print(Model.GetTeams().GetTeam(token).GetActions())
         Model.ReleaseLock()
         return await websocket.send(reply(209,"not enough actions",token))
     
     Model.GetGraph().find_server(node_id).set_type(new_state)
-    Model.GetTeams.GetTeam(token).AddActions(-1)
+    Model.GetTeams().GetTeam(token).AddActions(-1)
 
     Model.ReleaseLock()
 
@@ -269,9 +272,13 @@ async def subscribe_graph(websocket, token):
     
     Model.AcquireLock()
     G = graph()
+    G2 = graph()
     S = Subscription(Model.GetGraph(),G)
+    S2 = Subscription(Model.GetWarManager(),G)
     G.sub = S
+    G2.sub = S2
     Model.AddSubscription(S)
+    Model.AddSubscription(S2)
     Model.ReleaseLock()
     await websocket.send(reply(200,"successfull subscribe",token))
 
@@ -298,8 +305,16 @@ async def attack(websocket,token,id_from,id_to):
     id_from,id_to=int(id_from),int(id_to)
     Model.AcquireLock()
     Model.GetWarManager().start_war(Model.GetGraph().find_server(id_from),Model.GetGraph().find_server(id_to))
+
     Model.ReleaseLock()
     await websocket.send(reply(200,"war started!",token))
+
+async def cancel_attack(websocket,token,id_from,id_to):
+    id_from,id_to=int(id_from),int(id_to)
+    Model.AcquireLock()
+    Model.GetWarManager().stop_war(Model.GetWarManager().get_war(id_from,id_to))
+    Model.ReleaseLock()
+    await websocket.send(reply(200,"war cancelled!"))
 
 #-=-=-=-=-=-=-=-=-=-=-=-(/METHODS)-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
