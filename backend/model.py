@@ -43,6 +43,16 @@ class Model:
         self.routines_ = []
         self.timer_ = Timer()
         self.lock_acquired_ = False
+    
+    def __getstate__(self):
+        state = self.__dict__.copy()
+        return state
+
+    def __setstate__(self, state):
+        self.__dict__.update(state)
+        self.lock_acquired_ = False
+        if self.mutex_.locked():
+            self.mutex_.release()
          
     @classmethod
     def GetInstance(cls):

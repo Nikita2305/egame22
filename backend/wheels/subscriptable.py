@@ -7,6 +7,15 @@ class Subscriptable:
     def __init__(self):
         self.changed_ = False
         self.mutex_ = threading.Lock()
+    
+    def __getstate__(self):
+        state = self.__dict__.copy()
+        return state
+
+    def __setstate__(self, state):
+        self.__dict__.update(state)
+        if self.mutex_.locked():
+            self.mutex_.release()
 
     def Mark(self):
         self.mutex_.acquire()

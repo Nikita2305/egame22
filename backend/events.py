@@ -78,6 +78,13 @@ class Coincidence (Condition):
         super().__init__()
         self.conditions_list_ = conditions_list
         self.mutex_ = threading.Lock()
+    def __getstate__(self):
+        state = self.__dict__.copy()
+        return state
+    def __setstate__(self, state):
+        self.__dict__.update(state)
+        if self.mutex_.locked():
+            self.mutex_.release()
     def Activate(self, routine):
         super().Activate(routine)
         for cond in self.conditions_list_:

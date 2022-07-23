@@ -3,7 +3,7 @@ from glob import glob
 from django.forms import ModelForm
 from backend.model import Model
 from backend.text_generation.posting import Floodilka
-from backend.wheels.routine import Executable, Routine
+from backend.wheels.routine import Executable, Routine, RepeatedRoutine
 from backend.wheels.subscriptable import Subscription, Subscriptable, notifier
 from backend.graph import Graph
 from backend.server import Server
@@ -13,10 +13,12 @@ from backend.teams import Team, TeamsManager
 from backend.war import WarManager, War
 from backend.wheels.utils import GraphGenerator
 from backend.events import EventManager
+from backend.callbacks.dumper import Dumper, restore
 import asyncio
 import websockets
 import json
 import jsonpickle
+import time
 from random import randint
 
 admin_tokens=[]
@@ -64,7 +66,7 @@ vv,ee = GraphGenerator(nteams=nteams,
                    n_outer_edges=20,
                    n_core_edges=3,
                    n_links=4,
-                   debug=True)
+                   debug=False)
 servers = []
 for v in vv:
     s = Server(Model.GetGraph(), v.i)
@@ -87,7 +89,9 @@ Model.GetInstance().news_feed_=NewsFeed(forums)
 # for name in forums:
 #     Model.ScheduleRoutine(Routine(Floodilka(name),1))
 
+Model.ScheduleRoutine(RepeatedRoutine(Dumper("state"),10))
 
+time.sleep(2)
 Model.Run()
 
 #-=-=-=-=-=-=-=-=-=-=-=-(/GAVNO(+-100проц будет переписано))-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=

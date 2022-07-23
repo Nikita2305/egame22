@@ -23,6 +23,15 @@ class Routine:
         self.execution_started_ = None
         self.executed_ = False
         super().__init__()
+    
+    def __getstate__(self):
+        state = self.__dict__.copy()
+        return state
+
+    def __setstate__(self, state):
+        self.__dict__.update(state)
+        if self.mutex_.locked():
+            self.mutex_.release()
 
     def GetSleepTime(self):
         return self.sleeptime_
@@ -65,8 +74,8 @@ class Routine:
 def RepeatedRoutine(executable, period):
     def wrapped(r):
         executable(r)
-        Model.AcquireLock()
-        Model.ScheduleRoutine(r)
-        Model.ReleaseLock()
+        backend.model.Model.AcquireLock()
+        backend.model.Model.ScheduleRoutine(r)
+        backend.model.Model.ReleaseLock()
     r = Routine(wrapped, period)
     return r
