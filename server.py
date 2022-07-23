@@ -23,7 +23,7 @@ admin_tokens=[]
 team_tokens=[]
 
 methods_list=[]
-admin_methods=["save","print","on_bot_connect", "register_team", "subscribe_leaderboard"]
+admin_methods=["save","print","on_bot_connect", "register_team", "subscribe_leaderboard", "post", "launch_event"]
 forums=["2ch","4chan","habr"]
 
 #-=-=-=-=-=-=-=-=-=-=-=-(GAVNO(+-100проц будет переписано))=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
@@ -157,6 +157,37 @@ async def upgrade(websocket,token,node_id):
 
 # async def print_team
 
+async def launch_event(websocket, token, event_name):
+    Model.AcquireLock()
+    ok = True
+    try:
+        Model.GetEventManager().LoadEvent(event_name)
+        Model.GetEventManager().LaunchEvent(event_name)
+    except:
+        ok = False
+    finally:
+        Model.ReleaseLock()
+
+    if ok:
+        await websocket.send(reply(200,"OK",token))
+    else:
+        await websocket.send(reply(228,"error",token))
+
+async def stop_event(websocket, token, event_name):
+    Model.AcquireLock()
+    ok = True
+    try:
+        Model.GetEventManager().StopEvent(event_name)
+    except:
+        ok = False
+    finally:
+        Model.ReleaseLock()
+
+    if ok:
+        await websocket.send(reply(200,"OK",token))
+    else:
+        await websocket.send(reply(228,"error",token))
+
 async def transfer(websocket, token, team2, cur, amount):
     amount=float(amount)
     Model.AcquireLock()
@@ -208,7 +239,10 @@ async def buy(websocket,token,cur,amount):
         Model.ReleaseLock()
         await websocket.send(reply(228,"Not enough crypto",token))
 
+<<<<<<< HEAD
 
+=======
+>>>>>>> a8a43d8b448edbc9d1a1f340852fbe1b71ba6413
 async def reclassify(websocket, token, node_id, new_state):
     node_id=int(node_id)
     Model.AcquireLock()
@@ -293,7 +327,7 @@ async def subscribe_forum(websocket,token,forum):
     await websocket.send(reply(200,"successfull subscribe",token))
 
 async def post(websocket,token, forum, author, header, body):
-    Model.AcquireLock();
+    Model.AcquireLock()
     Model.GetNewsFeed().SendPost(forum, author, header, body)
     Model.ReleaseLock()
     await websocket.send(reply(200,"post posted",token))
