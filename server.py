@@ -42,7 +42,7 @@ cur_bases["AttendenceCoin"] = AttendancePrice()
 Model.GetInstance()
 Model.GetInstance().market_=Market(5,cur_bases)
 Model.GetInstance().teams_=TeamsManager(currencies_list)
-nteams = 8;
+nteams = 4;
 colors = [
     "#1d85e8",
     "#f88d2c",
@@ -64,7 +64,7 @@ vv,ee = GraphGenerator(nteams=nteams,
                    n_outer_edges=20,
                    n_core_edges=3,
                    n_links=4,
-                   debug=False)
+                   debug=True)
 servers = []
 for v in vv:
     s = Server(Model.GetGraph(), v.i)
@@ -239,10 +239,6 @@ async def buy(websocket,token,cur,amount):
         Model.ReleaseLock()
         await websocket.send(reply(228,"Not enough crypto",token))
 
-<<<<<<< HEAD
-
-=======
->>>>>>> a8a43d8b448edbc9d1a1f340852fbe1b71ba6413
 async def reclassify(websocket, token, node_id, new_state):
     node_id=int(node_id)
     Model.AcquireLock()
@@ -348,7 +344,14 @@ async def cancel_attack(websocket,token,id_from,id_to):
     Model.AcquireLock()
     Model.GetWarManager().stop_war(Model.GetWarManager().get_war(id_from,id_to))
     Model.ReleaseLock()
-    await websocket.send(reply(200,"war cancelled!"))
+    await websocket.send(reply(200,"war cancelled!",token))
+
+async def remove_edge(websocket,token,id_from,id_to):
+    id_from,id_to=int(id_from),int(id_to)
+    Model.AcquireLock()
+    Model.GetGraph().del_edges(Model.GetGraph().find_server(id_from),Model.GetGraph().find_server(id_to))
+    Model.ReleaseLock()
+    websocket.send(reply(200,"removed_edge",token))
 
 #-=-=-=-=-=-=-=-=-=-=-=-(/METHODS)-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
