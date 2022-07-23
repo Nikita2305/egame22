@@ -17,7 +17,7 @@ class Team (Subscriptable):
         self.cryptowallet_ = dict([(cur,0.) for cur in currencies])
         self.log_ = []
         self.wallet_ = 0.
-        self.actions_ = 0.
+        self.actions_ = 4
         
     def GetCryptoMoney(self, cur):
         return self.cryptowallet_[cur]

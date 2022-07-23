@@ -42,7 +42,7 @@ cur_bases["AttendenceCoin"] = AttendancePrice()
 Model.GetInstance()
 Model.GetInstance().market_=Market(5,cur_bases)
 Model.GetInstance().teams_=TeamsManager(currencies_list)
-nteams = 8;
+nteams = 4;
 colors = [
     "#1d85e8",
     "#f88d2c",
@@ -64,7 +64,7 @@ vv,ee = GraphGenerator(nteams=nteams,
                    n_outer_edges=20,
                    n_core_edges=3,
                    n_links=4,
-                   debug=False)
+                   debug=True)
 servers = []
 for v in vv:
     s = Server(Model.GetGraph(), v.i)
@@ -141,12 +141,19 @@ async def give(websocket, token,team_name,cur,amount):
         await websocket.send(reply(228,"HEHEH",token))
 
 async def info(websocket,token):
-    await websocket.send(reply(200,"OK",token,json.dumps({"name":Model.GetTeams().GetTeam(token).GetName(),"money":[{"name":"dollar","amount":Model.GetTeams().GetTeam(token).GetMoney()}]+[{"name":cur,"amount":Model.GetTeams().GetTeam(token).GetCryptoMoney(cur)} for cur in currencies_list],"nodes":[{"id":node.get_id(),"state":node.get_type(),"power":node.get_power()} for node in Model.GetGraph().get_servers_by_owners(Model.GetTeams().GetTeam(token))]})))
+    await websocket.send(reply(200,"OK",token,json.dumps({"name":Model.GetTeams().GetTeam(token).GetName(),"money":[{"name":"dollar","amount":Model.GetTeams().GetTeam(token).GetMoney()}]+[{"name":cur,"amount":Model.GetTeams().GetTeam(token).GetCryptoMoney(cur)} for cur in currencies_list],"nodes":[{"id":node.get_id(),"state":node.get_type(),"power":node.get_power()} for node in Model.GetGraph().get_servers_by_owners(Model.GetTeams().GetTeam(token))],"niggers":Model.GetTeams().GetTeam(token).GetActions()})))
 
-# async def upgrade(websocket,token,node_id):
-#     Model.AcquireLock()
-#     if(Model.GetTeams().GetTeam(token).AddMoneyCheck(-Model.GetGraph().find_server(id)))
-#     Model.GetGraph().upgrade_server(node_id,Model.GetGraph().find_server(id).get_power()*1.5)
+async def upgrade(websocket,token,node_id):
+    Model.AcquireLock()
+    s = Model.GetGraph().find_server(node_id)
+    if Model.GetTeams().GetTeam(token).AddMoneyCheck(-s.get_next_price()):
+        Model.GetGraph().upgrade_server(s,s.get_power()*1.5)
+        Model.GetTeams().GetTeam(token).AddMoney(-s.get_next_price(), reason="upgrade")
+        s.set_next_price(s.get_next_price()*2)
+        await websocket.send(reply(200,"OK",token))
+    else:
+        await websocket.send(reply(228,"Not enough money",token))
+    Model.ReleaseLock()
 
 # async def print_team
 
@@ -242,15 +249,20 @@ async def buy(websocket,token,cur,amount):
         await websocket.send(reply(228,"Not enough crypto",token))
 
 async def reclassify(websocket, token, node_id, new_state):
+    node_id=int(node_id)
     Model.AcquireLock()
     if node_id not in [node.get_id() for node in Model.GetGraph().get_servers_by_owners(Model.GetTeams().GetTeam(token))]:
+        # print([node.get_id() for node in Model.GetGraph().get_servers_by_owners(Model.GetTeams().GetTeam(token))])
+        Model.ReleaseLock()
         return await websocket.send(reply(208,"not your node",token))
 
-    if not Model.GetTeams.GetTeam(token).AddActionsCheck(-1):
+    if not Model.GetTeams().GetTeam(token).AddActionsCheck(-1):
+        print(Model.GetTeams().GetTeam(token).GetActions())
+        Model.ReleaseLock()
         return await websocket.send(reply(209,"not enough actions",token))
     
     Model.GetGraph().find_server(node_id).set_type(new_state)
-    Model.GetTeams.GetTeam(token).AddActions(-1)
+    Model.GetTeams().GetTeam(token).AddActions(-1)
 
     Model.ReleaseLock()
 
@@ -277,7 +289,7 @@ async def subscribe_graph(websocket, token):
                     {
                         "nodes":[{"id":node.get_id(),"positionX":node.get_x(),"positionY":node.get_y(),"power":node.get_power(),"defense":node.get_power()*node.get_k(),"type":node.get_type(),"level":node.get_level(),"color":node.get_owner().GetColor() if node.get_owner() is not None else None} for node in Model.GetGraph().get_vertexes()],
                         "edges":[{"source":e[0],"target":e[1]} for e in Model.GetGraph().get_edges()],
-                        "timers":[{"source":w.get_attaker(),"target":w.get_defender(),"timer":Model.GetWarManager().get_war_routine(w).GetRemainingTime()} for w in Model.GetWarManager().get_wars()]
+                        "timers":[{"source":w.get_attacker().get_id(),"target":w.get_defender().get_id(),"timer":Model.GetWarManager().get_war_routine(w).GetRemainingTime()} for w in Model.GetWarManager().get_wars()]
                     })
     Model.AcquireLock()
     asyncio.create_task(websocket.send(form_json()))
@@ -299,9 +311,13 @@ async def subscribe_graph(websocket, token):
     
     Model.AcquireLock()
     G = graph()
+    G2 = graph()
     S = Subscription(Model.GetGraph(),G)
+    S2 = Subscription(Model.GetWarManager(),G)
     G.sub = S
+    G2.sub = S2
     Model.AddSubscription(S)
+    Model.AddSubscription(S2)
     Model.ReleaseLock()
     await websocket.send(reply(200,"successfull subscribe",token))
 
@@ -325,9 +341,26 @@ async def get_posts(websocket,token,forum):
     await websocket.send(reply(200,"posts acuireseded",token,[{"name":post.GetHeader(),"text":post.GetBody(),"author":post.GetAuthor()} for post in Model.GetNewsFeed().GetPosts(forum)]))
 
 async def attack(websocket,token,id_from,id_to):
+    id_from,id_to=int(id_from),int(id_to)
     Model.AcquireLock()
-    Model.GetWarManager()
+    Model.GetWarManager().start_war(Model.GetGraph().find_server(id_from),Model.GetGraph().find_server(id_to))
+
     Model.ReleaseLock()
+    await websocket.send(reply(200,"war started!",token))
+
+async def cancel_attack(websocket,token,id_from,id_to):
+    id_from,id_to=int(id_from),int(id_to)
+    Model.AcquireLock()
+    Model.GetWarManager().stop_war(Model.GetWarManager().get_war(id_from,id_to))
+    Model.ReleaseLock()
+    await websocket.send(reply(200,"war cancelled!",token))
+
+async def remove_edge(websocket,token,id_from,id_to):
+    id_from,id_to=int(id_from),int(id_to)
+    Model.AcquireLock()
+    Model.GetGraph().del_edges(Model.GetGraph().find_server(id_from),Model.GetGraph().find_server(id_to))
+    Model.ReleaseLock()
+    websocket.send(reply(200,"removed_edge",token))
 
 #-=-=-=-=-=-=-=-=-=-=-=-(/METHODS)-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
