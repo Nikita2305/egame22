@@ -24,7 +24,7 @@ admin_tokens=[]
 team_tokens=[]
 
 methods_list=[]
-admin_methods=["save","print","on_bot_connect", "register_team", "subscribe_leaderboard", "post", "launch_event"]
+admin_methods=["save","print","on_bot_connect", "register_team", "subscribe_leaderboard", "post", "launch_event","remove_edge",]
 forums=["2ch","4chan","habr"]
 
 #-=-=-=-=-=-=-=-=-=-=-=-(GAVNO(+-100проц будет переписано))=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
@@ -233,26 +233,23 @@ async def sell(websocket,token,cur,amount):
 
 async def remove_node(websocket, token, node_id):
     Model.AcquireLock()
-    Model.GetGraph().find_server(node_id).turn_off()
+    Model.GetGraph().find_server(int(node_id)).turn_off()
     Model.ReleaseLock()
     
     await websocket.send(reply(200,"OK",token))
 
 async def swap_nodes(websocket, token, node1, node2):
     Model.AcquireLock()
+    node1, node2 = int(node1),int(node2)
     serv1 = Model.GetGraph().find_server(node1)
     serv2 = Model.GetGraph().find_server(node2)
     team1 = serv1.get_owner()
     team2 = serv2.get_owner()
     serv1.set_owner(team2)
     serv2.set_owner(team1)
-    Model.AcquireLock()
+    Model.ReleaseLock()
 
     await websocket.send(reply(200,"OK",token))
-
-
-
-    Model.ReleaseLock()
 
 
 async def buy(websocket,token,cur,amount):
@@ -370,16 +367,18 @@ async def attack(websocket,token,id_from,id_to):
 async def cancel_attack(websocket,token,id_from,id_to):
     id_from,id_to=int(id_from),int(id_to)
     Model.AcquireLock()
-    Model.GetWarManager().stop_war(Model.GetWarManager().get_war(id_from,id_to))
+    Model.GetWarManager().stop_war(Model.GetWarManager().get_war(Model.GetGraph().find_server(id_from),Model.GetGraph().find_server(id_to)))
     Model.ReleaseLock()
     await websocket.send(reply(200,"war cancelled!",token))
 
 async def remove_edge(websocket,token,id_from,id_to):
+    await websocket.send(reply(228,"metod ne napisan",token))
+    return
     id_from,id_to=int(id_from),int(id_to)
     Model.AcquireLock()
     Model.GetGraph().del_edges(Model.GetGraph().find_server(id_from),Model.GetGraph().find_server(id_to))
     Model.ReleaseLock()
-    websocket.send(reply(200,"removed_edge",token))
+    await websocket.send(reply(200,"removed_edge",token))
 
 #-=-=-=-=-=-=-=-=-=-=-=-(/METHODS)-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
