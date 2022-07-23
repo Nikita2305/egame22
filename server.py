@@ -230,6 +230,31 @@ async def sell(websocket,token,cur,amount):
         Model.ReleaseLock()
         await websocket.send(reply(228,"Not enough crypto",token))
 
+
+async def remove_node(websocket, token, node_id):
+    Model.AcquireLock()
+    Model.GetGraph().find_server(node_id).turn_off()
+    Model.ReleaseLock()
+    
+    await websocket.send(reply(200,"OK",token))
+
+async def swap_nodes(websocket, token, node1, node2):
+    Model.AcquireLock()
+    serv1 = Model.GetGraph().find_server(node1)
+    serv2 = Model.GetGraph().find_server(node2)
+    team1 = serv1.get_owner()
+    team2 = serv2.get_owner()
+    serv1.set_owner(team2)
+    serv2.set_owner(team1)
+    Model.AcquireLock()
+
+    await websocket.send(reply(200,"OK",token))
+
+
+
+    Model.ReleaseLock()
+
+
 async def buy(websocket,token,cur,amount):
     amount=float(amount)
     Model.AcquireLock();
