@@ -139,6 +139,7 @@ class Event:
     def __init__(self,name):
         self.name_ = name
         self.fullname_ = "backend.libevents."+name
+        __import__(self.fullname_)
         self.eventmodule_ = sys.modules[self.fullname_]
         self.conditions_list_ = []
     def Activate(self):

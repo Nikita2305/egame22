@@ -285,7 +285,7 @@ async def subscribe_leaderboard(websocket, token):
     Model.AcquireLock()
     [Model.AddSubscription(Subscription(team,teams)) for team in Model.GetTeams().GetTeamsList()]
     Model.AddSubscription(Subscription(Model.GetMarket(),market))
-    asyncio.create_task(websocket.send(json.dumps({"teams":[{"name":team.GetName(),"color":team.GetColor(),"balance":team.GetMoney()} for team in Model.GetTeams().GetTeamsList()]})))
+    asyncio.create_task(websocket.send(json.dumps({"teams":[{"name":team.GetName(),"color":team.GetColor(),"balance":team.GetMoney()} for team in Model.GetTeams().GetTeamsList()],"unitTimer":Model.GetGraph().get_routine().GetRemainingTime()})))
     asyncio.create_task(websocket.send(json.dumps({"crypto_currencies":[{"name":x,"price":y} for x,y in ((name,Model.GetMarket().GetExchangeRate(name)) for name in currencies_list)]})))
     Model.ReleaseLock()
     await websocket.send(reply(200,"Succsesfull subscribe",token))

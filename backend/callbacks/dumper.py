@@ -23,7 +23,10 @@ class Dumper (Executable):
         Model.AcquireLock()
         tm = Model.GetTimer().GetTime()
         print("Saving to",self.filename_+str(int(tm))+".save")
-        s = jsonpickle.encode(Model.GetInstance(),make_refs=True, keys=True, warn=True)
+        s = jsonpickle.encode(Model.GetInstance(),
+                              make_refs=True, 
+                              keys=True, 
+                              warn=True)
         Model.ReleaseLock()
         f = open(self.filename_+str(int(tm))+".save", "w", encoding="utf-8")
         f.write(s)
@@ -33,7 +36,8 @@ class Dumper (Executable):
 def restore(filename):
     with open(filename, encoding="utf-8") as f:
         read_data = f.read()
-        Model.GetInstance().instance_ = jsonpickle.decode(read_data)
+        m = jsonpickle.decode(read_data)
+        Model.instance_ = m
         f.close()
         
         

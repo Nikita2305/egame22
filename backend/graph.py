@@ -9,10 +9,10 @@ from backend.server import Server
 
 
 class Graph(Subscriptable, Executable):
-    __graph = {}
 
     def __init__(self, tick, teams_manager, currencies_bases_dict):
         super().__init__()
+        self.__graph = {}
         self.__curr = currencies_bases_dict
         self.__teams_manager = teams_manager
         self.__tick = tick

@@ -1,163 +1,111 @@
+from ast import Mod
+from glob import glob
+from django.forms import ModelForm
 from backend.model import Model
-from backend.wheels.routine import Executable, Routine
+from backend.text_generation.posting import Floodilka
+from backend.wheels.routine import Executable, Routine, RepeatedRoutine
 from backend.wheels.subscriptable import Subscription, Subscriptable, notifier
-from backend.wheels.schedulers import ThreadScheduler
 from backend.graph import Graph
-from backend.market import Market
 from backend.server import Server
+from backend.market import Market, BaseTrend
+from backend.newsfeed import NewsFeed
 from backend.teams import Team, TeamsManager
 from backend.war import WarManager, War
 from backend.wheels.utils import GraphGenerator
+from backend.events import EventManager
+from backend.callbacks.dumper import Dumper, restore
+import asyncio
+import websockets
+import json
+import jsonpickle
 import time
+from random import randint
 
+admin_tokens=[]
+team_tokens=[]
+
+methods_list=[]
+admin_methods=["save","print","on_bot_connect", "register_team", "subscribe_leaderboard", "post", "launch_event"]
+forums=["2ch","4chan","habr"]
+
+#-=-=-=-=-=-=-=-=-=-=-=-(GAVNO(+-100проц будет переписано))=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+
+currencies_list=["SigmaCoin","Kefirium","DogeCoin","AttendenceCoin"]
+cur_bases = dict([(c,BaseTrend(100,10,abs(hash(c)))) for c in currencies_list])
+class AttendancePrice:
+    def __init__(self):
+        self.cache_ = [62,61,60,57,51,55,49,56,47,47]
+    def __call__(self, x):
+        if x < len(self.cache_):
+            return self.cache_[x]
+        else:
+            return self.cache_[-1] - (x-len(self.cache_)) if self.cache_[-1] - (x-len(self.cache_)) > 0 else 1
+cur_bases["AttendenceCoin"] = AttendancePrice()
+Model.GetInstance()
+Model.GetInstance().market_=Market(5,cur_bases)
+Model.GetInstance().teams_=TeamsManager(currencies_list)
+nteams = 4;
 colors = [
-    "#4281A4",
-    "#080357",
-    "#FF6B6B",
-    "#F8F4A6",
-    "#BDF7B7",
-    "#37DB25",
-    "#F1A6F7",
-    "#1D1D1D"
+    "#1d85e8",
+    "#f88d2c",
+    "#5451b0",
+    "#db6656",
+    "#42a18a",
+    "#30779d",
+    "#ee4a5d",
+    "#ef9cf0"
     ]
 
-class GraphChangedCallback(Executable):
+for i in range(nteams):
+    Model.GetTeams().CreateTeam("TOKEN"+str(i+1),colors[i])
 
-    def __init__(self):
-        super().__init__()
-
-    def __call__(self, routine):
-        print("graph changed")#Model.GetGraph().print()
-
-
-class ChangeNameRoutine(Executable):
-
-    def __init__(self, new_name, time):
-        self.new_name = new_name
-        self.time = time
-        super().__init__()
-
-    def __call__(self, routine):
-        Model.AcquireLock()
-        print("Expected 1s: ", time.time() - self.time)
-        Model.ReleaseLock()
-
-    # Setup:
-
-Model.GetInstance()
-tm = TeamsManager(["BTC", "EPH", "RUB"])
-Model.GetInstance().graph_ = Graph(1, tm, ["BTC", "EPH", "RUB"])
-servers = []
-
-gr = GraphGenerator(nteams=5, 
+Model.GetInstance().graph_=Graph(120,Model.GetTeams(),currencies_list)
+vv,ee = GraphGenerator(nteams=nteams,
                    n_outer_ring_vert_per_team=12, 
-                   n_core_vert_per_team=6,
-                   n_outer_edges=16,
-                   n_core_edges=8,
-                   n_links=4)
-
-for v in gr[0]:
+                   n_core_vert_per_team=4,
+                   n_outer_edges=20,
+                   n_core_edges=3,
+                   n_links=4,
+                   debug=False)
+servers = []
+for v in vv:
     s = Server(Model.GetGraph(), v.i)
     s.set_x(v.x)
     s.set_y(v.y)
     s.set_power(v.power)
     servers.append(s)
-
-for e in gr[1]:
+for e in ee:
     Model.GetGraph().add_edges(servers[e[0].i], [servers[e[1].i]])
+    
+tl = Model.GetTeams().GetTeamsList()
+for i in range(len(tl)):
+    servers[i*16].set_owner(tl[i])
 
-tm.CreateTeam(1, "A", "")
-tm.CreateTeam(2, "B")
+Model.GetInstance().wars_ = WarManager(servers,120)
 
-print(tm.GetTeamsNames())
+Model.GetInstance().events_ = EventManager()
 
-servers[0].set_owner(tm.GetTeam(1))
-servers[1].set_owner(tm.GetTeam(1))
-servers[2].set_owner(tm.GetTeam(1))
-servers[3].set_owner(tm.GetTeam(2))
-servers[4].set_owner(tm.GetTeam(2))
+Model.GetInstance().news_feed_=NewsFeed(forums)
+# for name in forums:
+#     Model.ScheduleRoutine(Routine(Floodilka(name),1))
 
-servers[1].set_type("BTC")
-servers[0].set_type("BTC")
+Model.ScheduleRoutine(RepeatedRoutine(Dumper("state"),10))
 
+def cb(r):
+    print("feeed")
+    print(Model.GetNewsFeed().GetPosts("2ch"))
 
-Model.Run()  # Spawns another thread
-Model.AcquireLock()
-Model.AddSubscription(Subscription(Model.GetGraph(), GraphChangedCallback()))
-Model.ScheduleRoutine(Routine(ChangeNameRoutine("g", time.time()), 1))
-Model.ReleaseLock()
+Model.AddSubscription(Subscription(Model.GetNewsFeed(),cb))
 
-time.sleep(5)
-for k in tm.teams_.keys():
-    print(tm.GetTeam(k).actions_)
-    print(tm.GetTeam(k).cryptowallet_)
+time.sleep(2)
+Model.Run()
 
-'''
-from backend.model import Model
-from backend.wheels.routine import Executable, Routine
-from backend.wheels.subscriptable import Subscription, Subscriptable, notifier
-from backend.wheels.schedulers import ThreadScheduler
-from backend.graph import Graph
-from backend.server import Server
-from backend.teams import Team, TeamsManager
-from backend.war import WarManager, War
-import time
+time.sleep(1)
+#print("post")
+#Model.GetEventManager().LoadEvent("testevent")
+#Model.GetEventManager().LaunchEvent("testevent")
+restore("state.save")
 
+print(Model.GetNewsFeed().GetPosts("2ch"))
 
-class GraphChangedCallback(Executable):
-
-    def __init__(self):
-        super().__init__()
-
-    def __call__(self, routine):
-        Model.GetGraph().print()
-
-
-class ChangeNameRoutine(Executable):
-
-    def __init__(self, new_name, time):
-        self.new_name = new_name
-        self.time = time
-        super().__init__()
-
-    def __call__(self, routine):
-        Model.AcquireLock()
-        print("Expected 1s: ", time.time() - self.time)
-        Model.ReleaseLock()
-
-    # Setup:
-
-
-tm = TeamsManager(["BTC", "EPH", "RUB"])
-Model.GetInstance().graph_ = Graph(1, tm, ["BTC", "EPH", "RUB"])
-servers = []
-for i in range(5):
-    servers.append(Server(Model.GetGraph(), i + 1000))
-
-for i in range(5):
-    servers.append(Server(Model.GetGraph(), i + 1000))
-    Model.GetGraph().add_edges(servers[i], [servers[(i+1) % 5]])
-
-tm.CreateTeam(1, "A")
-tm.CreateTeam(2, "B")
-
-servers[0].set_owner(tm.GetTeam(1))
-servers[1].set_owner(tm.GetTeam(1))
-servers[2].set_owner(tm.GetTeam(1))
-servers[3].set_owner(tm.GetTeam(2))
-servers[4].set_owner(tm.GetTeam(2))
-
-servers[1].set_type("BTC")
-servers[0].set_type("SSH")
-
-Model.Run()  # Spawns another thread
-Model.AcquireLock()
-Model.AddSubscription(Subscription(Model.GetGraph(), GraphChangedCallback()))
-Model.ScheduleRoutine(Routine(ChangeNameRoutine("g", time.time()), 1))
-Model.ReleaseLock()
-w = wm.get_war(servers[2], servers[3])
-print("------------------------------------------------")
-print(w)
-Model.AcquireLock()
-wm.stop_war(w)
-Model.ReleaseLock()'''
+time.sleep(1000)
