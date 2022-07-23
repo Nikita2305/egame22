@@ -16,6 +16,7 @@ from backend.events import EventManager
 import asyncio
 import websockets
 import json
+import time
 import jsonpickle
 from random import randint
 
@@ -64,7 +65,7 @@ vv,ee = GraphGenerator(nteams=nteams,
                    n_outer_edges=20,
                    n_core_edges=3,
                    n_links=4,
-                   debug=True)
+                   debug=False)
 servers = []
 for v in vv:
     s = Server(Model.GetGraph(), v.i)
@@ -84,9 +85,11 @@ Model.GetInstance().wars_ = WarManager(servers,120)
 Model.GetInstance().events_ = EventManager()
 
 Model.GetInstance().news_feed_=NewsFeed(forums)
-# for name in forums:
-#     Model.ScheduleRoutine(Routine(Floodilka(name),1))
 
+for name in forums:
+    Model.ScheduleRoutine(Routine(Floodilka("2ch"), 30))
+
+time.sleep(2)
 
 Model.Run()
 
