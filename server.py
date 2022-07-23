@@ -286,7 +286,8 @@ async def reclassify(websocket, token, node_id, new_state):
         Model.ReleaseLock()
         return await websocket.send(reply(209,"not enough actions",token))
     
-    if new_state == "attack":
+
+    if Model.GetGraph().find_server(node_id).get_type() == "attack":
         Model.GetWarManager().stop_war_by_attacker_id(node_id)
 
     Model.GetGraph().find_server(node_id).set_type(new_state)
