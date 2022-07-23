@@ -285,6 +285,12 @@ async def reclassify(websocket, token, node_id, new_state):
         print(Model.GetTeams().GetTeam(token).GetActions())
         Model.ReleaseLock()
         return await websocket.send(reply(209,"not enough actions",token))
+<<<<<<< HEAD
+=======
+    
+    if new_state == "attack":
+        Model.GetWarManager().stop_war_by_attacker_id(node_id)
+>>>>>>> c19395d3fd9aab21519550c4102a5d29af153d2b
 
     Model.GetGraph().find_server(node_id).set_type(new_state)
     Model.GetTeams().GetTeam(token).AddActions(-1)
