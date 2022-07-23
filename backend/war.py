@@ -57,6 +57,13 @@ class WarManager(Subscriptable):
                 return war
         return None
 
+    def stop_war_by_attacker_id(self, attacker_id):
+        attacker = Model.GetGraph().find_server(attacker_id)
+        for defender in Model.GetGraph().get_vertexes():
+            war = Model.GetWarManager().get_war(attacker, defender)
+            if war != None:
+                Model.GetWarManager().stop_war(war)
+
     @notifier
     def shift_local_wars(self, war):
         local_wars = self.get_local_wars(war.get_defender())
