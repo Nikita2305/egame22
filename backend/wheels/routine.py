@@ -65,8 +65,8 @@ class Routine:
 def RepeatedRoutine(executable, period):
     def wrapped(r):
         executable(r)
-        Model.AcquireLock()
-        Model.ScheduleRoutine(r)
-        Model.ReleaseLock()
+        backend.model.Model.AcquireLock()
+        backend.model.Model.ScheduleRoutine(r)
+        backend.model.Model.ReleaseLock()
     r = Routine(wrapped, period)
     return r

@@ -1,5 +1,5 @@
 from backend.model import Model
-from backend.wheels.routine import Executable, Routine
+from backend.wheels.routine import Executable, Routine, RepeatedRoutine
 from backend.wheels.subscriptable import Subscription, Subscriptable, notifier
 from backend.wheels.schedulers import ThreadScheduler
 from backend.graph import Graph
@@ -98,14 +98,26 @@ for k in tm.teams_.keys():
 def callback(routine):
     print("changed!!")
 
+def cb2(routine):
+    Model.AcquireLock()
+    Model.GetNewsFeed().SendPost("2ch","aaa","aaa","aaa")
+    Model.ScheduleRoutine(routine)
+    Model.ReleaseLock()
+    
+    print("tick")
+Model.GetInstance()
 Model.GetInstance().news_feed_ = NewsFeed(["2ch", "4chan", "habr"])
 Model.Run()  # Spawns another thread
 Model.AcquireLock()
 Model.AddSubscription(Subscription(Model.GetNewsFeed(), callback))
-Model.ScheduleRoutine(Routine(Floodilka("2ch"), 1))
-# Model.ScheduleRoutine(Routine(Floodilka("4chan"), 1))
+#Model.ScheduleRoutine(Routine(cb2,1))
+r = Routine(Floodilka("2ch"), 1)
+r.debug_flag = 1
+Model.ScheduleRoutine(r)
 # Model.ScheduleRoutine(Routine(Floodilka("habr"), 1))
 Model.ReleaseLock()
+print("end init")
+time.sleep(100)
 
 '''
 from backend.model import Model
