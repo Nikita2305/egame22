@@ -27,7 +27,7 @@ admin_tokens=[]
 team_tokens=[]
 
 methods_list=[]
-admin_methods=["save","print","on_bot_connect", "register_team", "subscribe_leaderboard", "post", "launch_event","remove_edge",]
+admin_methods=["save","print","on_bot_connect", "register_team", "subscribe_leaderboard", "post", "launch_event","remove_edge","remove_node", "stop_game"]
 
 #-=-=-=-=-=-=-=-=-=-=-=-(GAVNO(+-100проц будет переписано))=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
@@ -50,7 +50,7 @@ if len(sys.argv) == 1:
     Model.GetInstance()
     Model.GetInstance().market_=Market(5,cur_bases)
     Model.GetInstance().teams_=TeamsManager(currencies_list)
-    nteams = 4;
+    nteams = 4
     colors = [
         "#1d85e8",
         "#f88d2c",
@@ -106,6 +106,11 @@ else:
     Model.GetMarket().Run()
     Model.GetGraph().run()
     Model.GetWarManager().run()
+    for name in forums:
+        Model.ScheduleRoutine(Routine(Floodilka(name), 30))
+
+    time.sleep(2)
+    Model.ScheduleRoutine(RepeatedRoutine(Dumper("state"),10))
     
 Model.ReleaseLock()
 Model.Run()
@@ -136,11 +141,11 @@ def save():
 async def printt():
     pass #prints gamestate
 
-async def register_team(websocket, token, team_name):
-    Model.AcquireLock()
-    Model.GetTeams().CreateTeam("TOKEN_"+str(randint(1,100500)),team_name)
-    Model.ReleaseLock()
-    await websocket.send(reply(200,"Team "+team_name+" registered",token))
+# async def register_team(websocket, token, team_name):
+#     Model.AcquireLock()
+#     Model.GetTeams().CreateTeam("TOKEN_"+str(randint(1,100500)),team_name)
+#     Model.ReleaseLock()
+#     await websocket.send(reply(200,"Team "+team_name+" registered",token))
 
 async def give_crypto(websocket, token, team_name, cur, amount):
     Model.AcquireLock()
@@ -162,7 +167,7 @@ async def give(websocket, token,team_name,cur,amount):
     else:
         await websocket.send(reply(228,"HEHEH",token))
 
-async def info(websocket,token,lukahui):
+async def info(websocket,token):
     await websocket.send(reply(200,"OK",token,json.dumps({"name":Model.GetTeams().GetTeam(token).GetName(),"money":[{"name":"dollar","amount":Model.GetTeams().GetTeam(token).GetMoney()}]+[{"name":cur,"amount":Model.GetTeams().GetTeam(token).GetCryptoMoney(cur)} for cur in currencies_list],"nodes":[{"id":node.get_id(),"state":node.get_type(),"power":node.get_power()} for node in Model.GetGraph().get_servers_by_owners(Model.GetTeams().GetTeam(token))],"niggers":Model.GetTeams().GetTeam(token).GetActions()})))
 
 async def upgrade(websocket,token,node_id):
@@ -239,16 +244,32 @@ async def transfer(websocket, token, team2, cur, amount):
 
 # async def give_money(websocket, team_token, t)
 async def on_bot_connect(websocket, token):
+    #maybe nado v try except obernut', no vrode net
     await websocket.send(reply(200,"OK",token,{"teams":Model.GetTeams().GetTeamsNames(),"forums":forums,"currencies":currencies_list}))
     
 
 async def stop_game(websocket,token):
-    pass
+    Model.AcquireLock()
+
+    for team in Model.GetTeams().GetTeamsList():
+        print("!")
+        for cur in currencies_list:
+            team.RecalculateCryptoToDollar(cur, Model.GetMarket().GetExchangeRate(cur))
+        print(team.name_ + " - " + str(team.GetMoney()))
+
+    Model.ReleaseLock()
+    await websocket.send(reply(200,"STOPPED",token))
+
+    time.sleep(5)
+
+    Model.AcquireLock()
+    # Model.ReleaseLock()
+    # ахахаах конец игры - залоченная модель
 
 
 async def sell(websocket,token,cur,amount):
     amount=float(amount)
-    Model.AcquireLock();
+    Model.AcquireLock()
     if Model.GetTeams().GetTeam(token).AddCryptoMoneyCheck(cur,-amount):
         Model.GetTeams().GetTeam(token).AddMoney(amount*Model.GetMarket().GetExchangeRate(cur))
         Model.GetTeams().GetTeam(token).AddCryptoMoney(cur,-amount)
@@ -364,7 +385,7 @@ async def subscribe_leaderboard(websocket, token):
                 Model.ReleaseLock()
             else:
                 Model.AcquireLock()
-                asyncio.run(websocket.send(market()))
+                market()
                 Model.ReleaseLock()
     
     Model.AcquireLock()
@@ -405,7 +426,6 @@ async def subscribe_graph(websocket, token):
                         "edges":[{"source":e[0],"target":e[1]} for e in Model.GetGraph().get_edges()],
                         "timers":[{"source":w.get_attacker().get_id(),"target":w.get_defender().get_id(),"timer":Model.GetWarManager().get_war_routine(w).GetRemainingTime()} for w in Model.GetWarManager().get_wars()]
                     })
-        print(ret)
         return ret
 
 
@@ -424,8 +444,13 @@ async def subscribe_graph(websocket, token):
                 Model.ReleaseLock()
             else:
                 Model.AcquireLock()
-                asyncio.run(websocket.send(form_json()))
-                Model.ReleaseLock()
+                try:
+                    asyncio.run(websocket.send(form_json()))
+                except Exception as e:
+                    print(traceback.format_exc())
+                    print("hehehehehe graph execption well handled!!!")
+                finally:
+                    Model.ReleaseLock()
     
     Model.AcquireLock()
     G = graph()
@@ -444,9 +469,14 @@ async def subscribe_forum(websocket,token,forum):
         return json.dumps({"posts":[{"name":post.GetHeader(),"text":post.GetBody(),"author":post.GetAuthor()} for post in Model.GetNewsFeed().GetPosts(forum)]})
 
     Model.AcquireLock()
-    asyncio.create_task(websocket.send(forum_json()))
-    Model.ReleaseLock()
-    class forum(Executable):
+    try:
+        asyncio.create_task(websocket.send(forum_json()))
+    except Exception as e:
+        print(traceback.format_exc())
+        print("kto-to obosralsya")
+    finally:
+        Model.ReleaseLock()
+    class forumm(Executable):
         def __init__(self):
             super().__init__()
             self.sub = None
@@ -458,11 +488,16 @@ async def subscribe_forum(websocket,token,forum):
                 Model.ReleaseLock()
             else:
                 Model.AcquireLock()
-                asyncio.run(websocket.send(forum_json()))
-                Model.ReleaseLock()
+                try:
+                    asyncio.run(websocket.send(forum_json()))
+                except Exception as e:
+                    print(traceback.format_exc())
+                    print("kto-to obosralsya")
+                finally:
+                    Model.ReleaseLock()
     
     Model.AcquireLock()
-    G = forum()
+    G = forumm()
     # G2 = forum()
     S = Subscription(Model.GetNewsFeed(),G)
     # S2 = Subscription(Model.GetWarManager(),G2)
@@ -474,20 +509,25 @@ async def subscribe_forum(websocket,token,forum):
     await websocket.send(reply(200,"successfull subscribe",token))
 
 
-    asyncio.create_task(websocket.send())
-    def forumm(r):
-        print("forum callback triggered")
-        asyncio.run(websocket.send(json.dumps({"posts":[{"name":post.GetHeader(),"text":post.GetBody(),"author":post.GetAuthor()} for post in Model.GetNewsFeed().GetPosts(forum)]})))
-    Model.AcquireLock()
-    Model.AddSubscription(Subscription(Model.GetNewsFeed(),forumm))
-    Model.ReleaseLock()
-    await websocket.send(reply(200,"successfull subscribe",token))
+    # def forumm(r):
+    #     print("forum callback triggered")
+    #     asyncio.run(websocket.send(json.dumps({"posts":[{"name":post.GetHeader(),"text":post.GetBody(),"author":post.GetAuthor()} for post in Model.GetNewsFeed().GetPosts(forum)]})))
+    # Model.AcquireLock()
+    # Model.AddSubscription(Subscription(Model.GetNewsFeed(),forumm))
+    # Model.ReleaseLock()
+    # await websocket.send(reply(200,"successfull subscribe",token))
 
 async def post(websocket,token, forum, author, header, body):
     Model.AcquireLock()
-    Model.GetNewsFeed().SendPost(forum, author, header, body)
-    Model.ReleaseLock()
-    await websocket.send(reply(200,"post posted",token))
+    try:
+        Model.GetNewsFeed().SendPost(forum, author, header, body)
+        await websocket.send(reply(200,"post posted",token))
+    except Exception as e:
+        print(traceback.format_exc())
+        print("wrong forum")
+        await websocket.send(reply(228,"wroung chtiot",token))
+    finally:
+        Model.ReleaseLock()
 
 async def get_posts(websocket,token,forum):
     await websocket.send(reply(200,"posts acuireseded",token,[{"name":post.GetHeader(),"text":post.GetBody(),"author":post.GetAuthor()} for post in Model.GetNewsFeed().GetPosts(forum)]))
@@ -567,9 +607,9 @@ async def igra(websocket):
             continue
         else: method=req["method"]
 
-        # if method in admin_methods and token not in admin_tokens:
-        #     await websocket.send(reply(1337,"method requires admin priviliges",token))
-        #     continue
+        if method in admin_methods and token not in admin_tokens:
+            await websocket.send(reply(1337,"method requires admin priviliges",token))
+            continue
         
         if "args" in req:
             args=req["args"]
