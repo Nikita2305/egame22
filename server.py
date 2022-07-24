@@ -124,9 +124,9 @@ async def printt():
     pass #prints gamestate
 
 async def register_team(websocket, token, team_name):
-    Model.AcquireLock();
+    Model.AcquireLock()
     Model.GetTeams().CreateTeam("TOKEN_"+str(randint(1,100500)),team_name)
-    Model.ReleaseLock();
+    Model.ReleaseLock()
     await websocket.send(reply(200,"Team "+team_name+" registered",token))
 
 async def give_crypto(websocket, token, team_name, cur, amount):
@@ -311,31 +311,7 @@ async def reclassify(websocket, token, node_id, new_state):
     await websocket.send(reply(200,"OK",token)) 
 
 async def subscribe_leaderboard(websocket, token):
-    # class graph(Executable):
-    #     def __init__(self):
-    #         super().__init__()
-    #         self.sub = None
-    #     def __call__(self,r):
-    #         print("graph callbakc triggered")
-    #         if websocket.closed and self.sub is not None:
-    #             Model.AcquireLock()
-    #             Model.EraseSubscription(self.sub)
-    #             Model.ReleaseLock()
-    #         else:
-    #             Model.AcquireLock()
-    #             asyncio.run(websocket.send(form_json()))
-    #             Model.ReleaseLock()
-    
-    # Model.AcquireLock()
-    # G = graph()
-    # G2 = graph()
-    # S = Subscription(Model.GetGraph(),G)
-    # S2 = Subscription(Model.GetWarManager(),G)
-    # G.sub = S
-    # G2.sub = S2
-    # Model.AddSubscription(S)
-    # Model.AddSubscription(S2)
-    #====================
+    # def send_leadeboard():
     def teams(r):
         print("team callback triggered")
         asyncio.run(websocket.send(json.dumps({
@@ -345,9 +321,53 @@ async def subscribe_leaderboard(websocket, token):
     def market(r):
         print("market callback triggered")
         asyncio.run(websocket.send(json.dumps({"crypto_currencies":[{"name":x,"price":y} for x,y in ((name,Model.GetMarket().GetExchangeRate(name)) for name in currencies_list)]})))
+
+    class teamss(Executable):
+        def __init__(self):
+            super().__init__()
+            self.subs = [None]
+        def __call__(self,r):
+            print("leaderboard callbakc triggered")
+            if websocket.closed and any((sub is not None for sub in self.subs)):
+                Model.AcquireLock()
+                for sub in self.subs:
+                    if sub is not None:
+                        Model.EraseSubscription(sub)
+                Model.ReleaseLock()
+            else:
+                Model.AcquireLock()
+                asyncio.run(websocket.send(teams()))
+                Model.ReleaseLock()
+    
+    class markett(Executable):
+        def __init__(self):
+            super().__init__()
+            self.sub = None
+        def __call__(self,r):
+            print("leaderboard callbakc triggered")
+            if websocket.closed and self.sub is not None:
+                Model.AcquireLock()
+                Model.EraseSubscription(self.sub)
+                Model.ReleaseLock()
+            else:
+                Model.AcquireLock()
+                asyncio.run(websocket.send(market()))
+                Model.ReleaseLock()
+    
     Model.AcquireLock()
-    [Model.AddSubscription(Subscription(team,teams)) for team in Model.GetTeams().GetTeamsList()]
-    Model.AddSubscription(Subscription(Model.GetMarket(),market))
+    G = teamss()
+    G2 = markett()
+    S = [Subscription(team,G) for team in Model.GetTeams().GetTeamsList()]
+    # S = Subscription(Model.GetTeams(),G)
+    S2 = Subscription(Model.GetMarket(),G2)
+    G.sub = S
+    G2.sub = S2
+    [Model.AddSubscription(S1) for S1 in S]
+    Model.AddSubscription(S2)
+    #====================
+    # Model.AcquireLock()
+    # [Model.AddSubscription(Subscription(team,teams)) for team in Model.GetTeams().GetTeamsList()]
+    # Model.AddSubscription(Subscription(Model.GetMarket(),market))
 
 #=================
 
@@ -407,7 +427,41 @@ async def subscribe_graph(websocket, token):
     await websocket.send(reply(200,"successfull subscribe",token))
 
 async def subscribe_forum(websocket,token,forum):
-    asyncio.create_task(websocket.send(json.dumps({"posts":[{"name":post.GetHeader(),"text":post.GetBody(),"author":post.GetAuthor()} for post in Model.GetNewsFeed().GetPosts(forum)]})))
+    def forum_json():
+        return json.dumps({"posts":[{"name":post.GetHeader(),"text":post.GetBody(),"author":post.GetAuthor()} for post in Model.GetNewsFeed().GetPosts(forum)]})
+
+    Model.AcquireLock()
+    asyncio.create_task(websocket.send(forum_json()))
+    Model.ReleaseLock()
+    class forum(Executable):
+        def __init__(self):
+            super().__init__()
+            self.sub = None
+        def __call__(self,r):
+            print("foruim callbakc triggered")
+            if websocket.closed and self.sub is not None:
+                Model.AcquireLock()
+                Model.EraseSubscription(self.sub)
+                Model.ReleaseLock()
+            else:
+                Model.AcquireLock()
+                asyncio.run(websocket.send(forum_json()))
+                Model.ReleaseLock()
+    
+    Model.AcquireLock()
+    G = forum()
+    # G2 = forum()
+    S = Subscription(Model.GetNewsFeed(),G)
+    # S2 = Subscription(Model.GetWarManager(),G2)
+    G.sub = S
+    # G2.sub = S2
+    Model.AddSubscription(S)
+    # Model.AddSubscription(S2)
+    Model.ReleaseLock()
+    await websocket.send(reply(200,"successfull subscribe",token))
+
+
+    asyncio.create_task(websocket.send())
     def forumm(r):
         print("forum callback triggered")
         asyncio.run(websocket.send(json.dumps({"posts":[{"name":post.GetHeader(),"text":post.GetBody(),"author":post.GetAuthor()} for post in Model.GetNewsFeed().GetPosts(forum)]})))
