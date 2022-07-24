@@ -312,13 +312,13 @@ async def reclassify(websocket, token, node_id, new_state):
 
 async def subscribe_leaderboard(websocket, token):
     # def send_leadeboard():
-    def teams(r):
+    def teams():
         print("team callback triggered")
         asyncio.run(websocket.send(json.dumps({
             "teams":[{"name":team.GetName(),"color":team.GetColor(),"balance":team.GetMoney()} for team in Model.GetTeams().GetTeamsList()],
             "unitTimer":Model.GetGraph().get_routine().GetRemainingTime()
         })))
-    def market(r):
+    def market():
         print("market callback triggered")
         asyncio.run(websocket.send(json.dumps({"crypto_currencies":[{"name":x,"price":y} for x,y in ((name,Model.GetMarket().GetExchangeRate(name)) for name in currencies_list)]})))
 
@@ -336,7 +336,7 @@ async def subscribe_leaderboard(websocket, token):
                 Model.ReleaseLock()
             else:
                 Model.AcquireLock()
-                asyncio.run(websocket.send(teams()))
+                teams()
                 Model.ReleaseLock()
     
     class markett(Executable):
