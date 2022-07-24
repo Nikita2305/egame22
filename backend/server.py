@@ -16,6 +16,14 @@ class Server(Vertex):
         self.__y = 0
         super().__init__(graph)
 
+    def __getstate__(self):
+        state = self.__dict__.copy()
+        return state
+
+    def __setstate__(self, state):
+        self.__dict__.update(state)
+        
+
     def is_enabled(self):
         return self.__enabled
 
@@ -125,3 +133,5 @@ class Server(Vertex):
             print(prefix + "    " + str(self.get_support_neighbours()))
         except TypeError:
             pass
+    def __str__(self):
+        return str(self.__id)+"("+str(self.__owner)+"|"+self.__type+")"

@@ -1,5 +1,6 @@
 from backend.wheels.subscriptable import Subscriptable, notifier
 import backend.model
+import threading
 
 class Post:
     def __init__(self, author, time, header, body):
@@ -16,6 +17,8 @@ class Post:
         return self.header_
     def GetBody(self):
         return self.body_
+    def __str__(self):
+        return str(self.time_)+":"+str(self.author_)+":"+str(self.header_)+":"+str(self.body_)
 
 class Forum:
     def __init__(self, name):
@@ -34,6 +37,16 @@ class NewsFeed (Subscriptable):
     def __init__(self, forums):
         super().__init__()
         self.forums_ = dict([(n,Forum(n)) for n in forums])
+    
+    def __getstate__(self):
+        state = self.__dict__.copy()
+        del state["mutex_"]
+        del state["changed_"]
+        return state
+    def __setstate__(self, state):
+        self.__dict__.update(state)
+        self.changed_ = False
+        self.mutex_ = threading.Lock()
     
     def GetPosts(self, forum):
         return self.forums_[forum].GetPosts()

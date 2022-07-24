@@ -11,7 +11,7 @@ from backend.market import Market, BaseTrend
 from backend.newsfeed import NewsFeed
 from backend.teams import Team, TeamsManager
 from backend.war import WarManager, War
-from backend.wheels.utils import GraphGenerator
+from backend.wheels.graph_generation import GraphGenerator
 from backend.events import EventManager
 from backend.callbacks.dumper import Dumper, restore
 import asyncio
@@ -97,15 +97,29 @@ def cb(r):
 
 Model.AddSubscription(Subscription(Model.GetNewsFeed(),cb))
 
+#restore("state.save")
+
 time.sleep(2)
 Model.Run()
 
 time.sleep(1)
-#print("post")
-#Model.GetEventManager().LoadEvent("testevent")
-#Model.GetEventManager().LaunchEvent("testevent")
-restore("state.save")
 
-print(Model.GetNewsFeed().GetPosts("2ch"))
+
+
+print("post")
+Model.AcquireLock()
+Model.GetEventManager().LoadEvent("testevent")
+Model.GetEventManager().LaunchEvent("testevent")
+Model.ReleaseLock()
+
+time.sleep(1)
+Model.AcquireLock()
+Model.GetWarManager().start_war(Model.GetGraph().get_vertexes()[0],Model.GetGraph().get_vertexes()[1])
+Model.ReleaseLock()
+
+print(Model.GetInstance().__dict__)
+
+[print(x) for x in Model.GetNewsFeed().GetPosts("2ch")]
+[print(x) for x in Model.GetWarManager().get_wars()]
 
 time.sleep(1000)

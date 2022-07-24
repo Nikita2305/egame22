@@ -6,17 +6,36 @@ from backend.wheels.subscriptable import Subscription, Subscriptable, notifier
 from backend.wheels.schedulers import ThreadScheduler
 from backend.graph import Graph
 import time
-
+import threading
 
 class WarManager(Subscriptable):
-    __wars = {} # {defender: [wars]}
-    __war_routines = {} # {war: routine}
 
     def __init__(self, servers, tick):
         super().__init__()
+        self.__wars = {} # {defender: [wars]}
+        self.__war_routines = {} # {war: routine}
+        self.__war_remaining_time = {}
         for s in servers:
             self.__wars[s] = []
             self.__tick = tick
+    
+    def run(self):
+        for w in self.__war_remaining_time:
+            self.__war_routines[w] = Routine(w, self.__war_remaining_time[w])
+            Model.ScheduleRoutine(self.__war_routines[w])
+    
+    def __getstate__(self):
+        self.__war_remaining_time = dict([(w,self.__war_routines[w].GetRemainingTime()) for w in self.__war_routines])
+        state = self.__dict__.copy()
+        del state["mutex_"]
+        del state["changed_"]
+        del state["_WarManager__war_routines"]
+        return state
+    def __setstate__(self, state):
+        self.__dict__.update(state)
+        self.changed_ = False
+        self.mutex_ = threading.Lock()
+        self.__war_routines = {}
 
     @notifier
     def stop_war(self, war):
@@ -79,7 +98,7 @@ class WarManager(Subscriptable):
         Model.ScheduleRoutine(self.__war_routines[new_war])
 
 
-class War(Subscriptable, Executable):
+class War(Executable):
 
     def __init__(self, attacker: Server, defender: Server, manager: WarManager):
         self.__attacker = attacker
@@ -93,8 +112,12 @@ class War(Subscriptable, Executable):
     def get_attacker(self) -> Server:
         return self.__attacker
 
-    @notifier_with_model_lock
     def __call__(self, routine: Routine):
+        Model.AcquireLock()
         if Model.GetGraph().attack(self.__attacker, self.__defender):
             self.__manager.shift_local_wars(self)
         self.__manager.end_war(self)
+        Model.ReleaseLock()
+        
+    def __str__(self):
+        return str("War: ")+str(self.__attacker)+" attacks "+str(self.__defender)

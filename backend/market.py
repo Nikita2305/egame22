@@ -7,6 +7,7 @@ import time
 import traceback
 import math
 import copy
+import threading
 
 import numpy as np
 
@@ -96,7 +97,19 @@ class Market (Subscriptable, Executable):
             self.markets_[cur] = SingleMarket(currencies_bases_dict[cur])
         self.time_ = 0
         self.time_converter_ = [Model.GetTimer().GetTime()]
+        
+    def Run(self):
         Model.ScheduleRoutine(Routine(self, self.tick_time_))
+        
+    def __getstate__(self):
+        state = self.__dict__.copy()
+        del state["mutex_"]
+        del state["changed_"]
+        return state
+    def __setstate__(self, state):
+        self.__dict__.update(state)
+        self.changed_ = False
+        self.mutex_ = threading.Lock()
     
     @notifier_with_model_lock
     def __call__(self, routine):
