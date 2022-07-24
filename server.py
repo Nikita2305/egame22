@@ -363,7 +363,9 @@ async def subscribe_graph(websocket, token):
     await websocket.send(reply(200,"successfull subscribe",token))
 
 async def subscribe_forum(websocket,token,forum):
-    asyncio.create_task(websocket.send(json.dumps({"posts":[{"name":post.GetHeader(),"text":post.GetBody(),"author":post.GetAuthor()} for post in Model.GetNewsFeed().GetPosts(forum)]})))
+    asyncio.create_task(websocket.send(json.dumps({
+        "posts":[{"name":post.GetHeader(),"text":post.GetBody(),"author":post.GetAuthor()} for post in Model.GetNewsFeed().GetPosts(forum)]
+        })))
     def forumm(r):
         print("forum callback triggered")
         asyncio.run(websocket.send(json.dumps({"posts":[{"name":post.GetHeader(),"text":post.GetBody(),"author":post.GetAuthor()} for post in Model.GetNewsFeed().GetPosts(forum)]})))
@@ -463,7 +465,7 @@ async def igra(websocket):
             await websocket.send(reply(228,"No such method",token))
 
 async def main():
-    async with websockets.serve(igra, port=1337):
+    async with websockets.serve(igra, port=1337):   
         await asyncio.Future()  # run forever
 
 asyncio.run(main())
