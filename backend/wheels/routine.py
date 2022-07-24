@@ -26,13 +26,10 @@ class Routine:
         super().__init__()
     
     def __getstate__(self):
-        state = self.__dict__.copy()
-        return state
+        raise NotImplementedError("This class "+self.__name__+ "is not prepared for save")
 
     def __setstate__(self, state):
-        self.__dict__.update(state)
-        if self.mutex_.locked():
-            self.mutex_.release()
+        raise NotImplementedError("This class "+self.__name__+ "is not prepared for save")
 
     def GetSleepTime(self):
         return self.sleeptime_

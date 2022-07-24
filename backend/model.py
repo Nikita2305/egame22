@@ -40,19 +40,21 @@ class Model:
         self.wars_ = None
         self.mutex_ = threading.Lock()
         self.subscriptions_ = []
-        self.routines_ = []
         self.timer_ = Timer()
         self.lock_acquired_ = False
     
     def __getstate__(self):
-        state = self.__dict__
+        state = self.__dict__.copy()
+        del state["mutex_"]
+        del state["subscriptions_"]
+        del state["lock_acquired_"]
         return state
 
     def __setstate__(self, state):
         self.__dict__.update(state)
+        self.mutex_ = threading.Lock()
+        self.subscriptions_ = []
         self.lock_acquired_ = False
-        if self.mutex_.locked():
-            self.mutex_.release()
          
     @classmethod
     def GetInstance(cls):
@@ -117,7 +119,6 @@ class Model:
     @classmethod
     @singleton 
     def ScheduleRoutine(self, routine):
-        self.routines_.append(routine)
         if routine.IsDeferred():
             routine.ScheduleDefferedExecution() # with Timer
         else:
@@ -128,11 +129,6 @@ class Model:
     def EraseRoutine(self, routine): 
         if routine.IsDeferred():
             self.timer_.Remove(routine)
-        try:
-            self.routines_.remove(routine)
-            return True
-        except ValueError:
-            return False
 
     @classmethod
     @singleton 

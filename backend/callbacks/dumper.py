@@ -1,16 +1,10 @@
 from backend.model import Model
 from backend.wheels.routine import Executable
-import jsonpickle
+import pickle
 import threading
-import jsonpickle.ext.numpy as jsonpickle_numpy
+#import pickle.ext.numpy as pickle_numpy
 
-jsonpickle_numpy.register_handlers()
-
-class MutexHandler (jsonpickle.handlers.BaseHandler):
-    def flatten(obj, data):
-        pass
-    def restore(obj):
-        return threading.Lock()
+#jsonpickle_numpy.register_handlers()
 
 class Dumper (Executable):
     """
@@ -26,21 +20,15 @@ class Dumper (Executable):
         Model.AcquireLock()
         tm = Model.GetTimer().GetTime()
         print("Saving to",self.filename_+str(int(tm))+".save")
-        s = jsonpickle.encode(Model.GetInstance(),
-                              make_refs=True, 
-                              keys=True, 
-                              warn=True)
+        with open(self.filename_+str(int(tm))+".save", 'wb') as f:
+            pickle.dump(Model.instance_, f, pickle.HIGHEST_PROTOCOL)
+            f.close()
         Model.ReleaseLock()
-        f = open(self.filename_+str(int(tm))+".save", "w", encoding="utf-8")
-        f.write(s)
-        f.close()
         print("Saved")
         
 def restore(filename):
-    with open(filename, encoding="utf-8") as f:
-        read_data = f.read()
-        m = jsonpickle.decode(read_data)
-        Model.instance_ = m
+    with open(filename, 'rb') as f:
+        Model.instance_ = pickle.load(f)
         f.close()
         
         

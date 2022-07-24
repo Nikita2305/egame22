@@ -10,23 +10,27 @@ class Timer:
         self.routines_ = []
         self.step_ = step
         self.time_ = 0
-        self.stopped_ = False
+        self.stopped_ = True
         self.mutex_ = threading.Lock()
     
     def __getstate__(self):
-        state = self.__dict__
+        state = self.__dict__.copy()
+        del state["mutex_"]
+        del state["routines_"]
+        del state["stopped_"]
         return state
-
     def __setstate__(self, state):
         self.__dict__.update(state)
-        if self.mutex_.locked():
-            self.mutex_.release()
+        self.mutex_ = threading.Lock()
+        self.routines_ = []
+        self.stopped_ = True
 
     def GetTime(self):
         return self.time_
 
     def Run(self):
         backend.model.Model.AcquireLock()
+        self.stopped_ = False
         backend.model.Model.ScheduleRoutine(Routine(self.Loop))
         backend.model.Model.ReleaseLock(schedule_subscriptions=False)
 

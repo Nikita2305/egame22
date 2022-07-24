@@ -6,23 +6,37 @@ from backend.model import Model, notifier_with_model_lock
 from backend.vertex import Vertex
 from backend.teams import Team
 from backend.server import Server
-
+import threading
 
 class Graph(Subscriptable, Executable):
 
-    def __init__(self, tick, teams_manager, currencies_bases_dict):
+    def __init__(self, tick, currencies_bases_dict):
         super().__init__()
         self.__graph = {}
         self.__curr = currencies_bases_dict
-        self.__teams_manager = teams_manager
         self.__tick = tick
         self.__routine = Routine(self, self.__tick)
+
+    def run(self):
         Model.ScheduleRoutine(self.__routine)
+
+    def __getstate__(self):
+        state = self.__dict__.copy()
+        del state["_Graph__routine"]
+        del state["mutex_"]
+        del state["changed_"]
+        return state
+
+    def __setstate__(self, state):
+        self.__dict__.update(state)
+        self.__routine = Routine(self, self.__tick)
+        self.changed_ = False
+        self.mutex_ = threading.Lock()
 
     @notifier_with_model_lock
     def __call__(self, routine):
         new_resources = {} # {team: {"actions":, "BTC": ,...}}
-        teams = self.__teams_manager.GetTeamsList()
+        teams = Model.GetTeams().GetTeamsList()
         for t in teams:
             new_resources[t] = {}
             new_resources[t]["actions"] = 0
@@ -42,9 +56,9 @@ class Graph(Subscriptable, Executable):
                 t.AddCryptoMoney(c, new_resources[t][c], "mining")
 
         print("AHAHA")
-        for k in self.__teams_manager.teams_.keys():
-            print(self.__teams_manager.GetTeam(k).actions_)
-            print(self.__teams_manager.GetTeam(k).cryptowallet_)
+        for k in Model.GetTeams().teams_.keys():
+            print(Model.GetTeams().GetTeam(k).actions_)
+            print(Model.GetTeams().GetTeam(k).cryptowallet_)
         print(time.time())
         Model.ScheduleRoutine(routine)
 

@@ -18,6 +18,10 @@ class Condition:
         return self.active_
     def Check(self):
         raise NotImplementedError("Pure virtual method called")
+    def SaveState():
+        return self.active_
+    def RestoreState(x):
+        self.active_ = x
     def GetAction():
         return self.action_
     def Inactivate(self):
@@ -78,13 +82,6 @@ class Coincidence (Condition):
         super().__init__()
         self.conditions_list_ = conditions_list
         self.mutex_ = threading.Lock()
-    def __getstate__(self):
-        state = self.__dict__.copy()
-        return state
-    def __setstate__(self, state):
-        self.__dict__.update(state)
-        if self.mutex_.locked():
-            self.mutex_.release()
     def Activate(self, routine):
         super().Activate(routine)
         for cond in self.conditions_list_:
@@ -131,6 +128,11 @@ class Stage (TriggeredCondition):
         super().__init__(stage)
         self.stage_counter_ = stage_counter
         self.condition_ = cond
+    def SaveState():
+        return (self.active_, self.GetStage())
+    def RestoreState(x):
+        self.active_ = x[0]
+        self.stage_counter_.stage_ = x[1]
     def Check(self):
         ret = self.condition_(self.stage_counter_.GetStage())
         return ret
@@ -142,6 +144,25 @@ class Event:
         __import__(self.fullname_)
         self.eventmodule_ = sys.modules[self.fullname_]
         self.conditions_list_ = []
+        self.states_list_ = []
+    def __getstate__(self):
+        self.states_list_ = [cond.SaveState() for cond, routine in self.conditions_list_]
+        state = self.__dict__.copy()
+        return state
+    def __setstate__(self, state):
+        self.__dict__.update(state)
+        __import__(self.fullname_)
+        self.eventmodule_ = sys.modules[self.fullname_]
+        self.conditions_list_ = self.eventmodule_.init()
+        if(len(self.conditions_list_) != len(self.states_list_)):
+            print("event",self.name_,"not restored correctly")
+        else:
+            for i in len(self.conditions_list_):
+                self.conditions_list_[i][0].RestoreState(self.states_list_[i])
+            for c,r in self.conditions_list_:
+                if c.IsActive():
+                    c.Activate(r)
+                
     def Activate(self):
         self.conditions_list_ = self.eventmodule_.init()
         for cond, routine in self.conditions_list_:

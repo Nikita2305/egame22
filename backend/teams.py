@@ -1,5 +1,6 @@
 from backend.wheels.subscriptable import Subscriptable, notifier
 import backend.model
+import threading
 
 class LogEntry:
     def __init__(self, subject, reason, amount):
@@ -18,7 +19,15 @@ class Team (Subscriptable):
         self.log_ = []
         self.wallet_ = 0.
         self.actions_ = 4
-        
+    def __getstate__(self):
+        state = self.__dict__.copy()
+        del state["mutex_"]
+        del state["changed_"]
+        return state
+    def __setstate__(self, state):
+        self.__dict__.update(state)
+        self.changed_ = False
+        self.mutex_ = threading.Lock()
     def GetCryptoMoney(self, cur):
         return self.cryptowallet_[cur]
     @notifier
@@ -66,6 +75,8 @@ class Team (Subscriptable):
         if reason is not None:
             ret = [x for x in ret if x.reason_ == reason]
         return ret
+    def __str__(self):
+        return self.name_
 
 class TeamsManager:
     def __init__(self, currencies):
