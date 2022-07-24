@@ -1,8 +1,7 @@
 from ast import Mod
 from glob import glob
-from django.forms import ModelForm
+import traceback
 from backend.model import Model
-from backend.text_generation.posting import Floodilka
 from backend.wheels.routine import Executable, Routine, RepeatedRoutine
 from backend.wheels.subscriptable import Subscription, Subscriptable, notifier
 from backend.graph import Graph
@@ -12,6 +11,7 @@ from backend.newsfeed import NewsFeed
 from backend.teams import Team, TeamsManager
 from backend.war import WarManager, War
 from backend.wheels.utils import GraphGenerator
+from backend.text_generation.posting import Floodilka
 from backend.events import EventManager
 from backend.callbacks.dumper import Dumper, restore
 import asyncio
@@ -69,6 +69,7 @@ vv,ee = GraphGenerator(nteams=nteams,
                    n_links=4,
                    debug=False)
 servers = []
+print("NEDGES", len(ee))
 for v in vv:
     s = Server(Model.GetGraph(), v.i)
     s.set_x(v.x)
@@ -89,10 +90,10 @@ Model.GetInstance().events_ = EventManager()
 Model.GetInstance().news_feed_=NewsFeed(forums)
 
 for name in forums:
-    Model.ScheduleRoutine(Routine(Floodilka("2ch"), 30))
+    Model.ScheduleRoutine(Routine(Floodilka(name), 10))
 
 time.sleep(2)
-Model.ScheduleRoutine(RepeatedRoutine(Dumper("state"),10))
+# Model.ScheduleRoutine(RepeatedRoutine(Dumper("state"),10))
 
 time.sleep(2)
 Model.Run()
@@ -154,10 +155,12 @@ async def info(websocket,token):
 
 async def upgrade(websocket,token,node_id):
     Model.AcquireLock()
+    node_id = int(node_id)
     s = Model.GetGraph().find_server(node_id)
-    if Model.GetTeams().GetTeam(token).AddMoneyCheck(-s.get_next_price()):
+    if Model.GetTeams().GetTeam(token).AddMoneyCheck(-s.get_next_price()) and Model.GetTeams().GetTeam(token).AddActionsCheck(-1):
         Model.GetGraph().upgrade_server(s,s.get_power()*1.5)
         Model.GetTeams().GetTeam(token).AddMoney(-s.get_next_price(), reason="upgrade")
+        Model.GetTeams().GetTeam(token).AddActions(-1)
         s.set_next_price(s.get_next_price()*2)
         await websocket.send(reply(200,"OK",token))
     else:
@@ -169,17 +172,15 @@ async def upgrade(websocket,token,node_id):
 async def launch_event(websocket, token, event_name):
     Model.AcquireLock()
     ok = True
-    # try:
-    #     Model.GetEventManager().LoadEvent(event_name)
-    #     Model.GetEventManager().LaunchEvent(event_name)
-    # except Exception as e:
-    #     print(e)
-    #     ok = False
-    # finally:
-    #     Model.ReleaseLock()
+    try:
+        Model.GetEventManager().LoadEvent(event_name)
+        Model.GetEventManager().LaunchEvent(event_name)
+    except Exception as e:
+        print(traceback.format_exc())
+        ok = False
+    finally:
+        Model.ReleaseLock()
 
-    Model.GetEventManager().LoadEvent(event_name)
-    Model.GetEventManager().LaunchEvent(event_name)
 
     if ok:
         await websocket.send(reply(200,"OK",token))
@@ -304,6 +305,31 @@ async def reclassify(websocket, token, node_id, new_state):
     await websocket.send(reply(200,"OK",token)) 
 
 async def subscribe_leaderboard(websocket, token):
+    # class graph(Executable):
+    #     def __init__(self):
+    #         super().__init__()
+    #         self.sub = None
+    #     def __call__(self,r):
+    #         print("graph callbakc triggered")
+    #         if websocket.closed and self.sub is not None:
+    #             Model.AcquireLock()
+    #             Model.EraseSubscription(self.sub)
+    #             Model.ReleaseLock()
+    #         else:
+    #             Model.AcquireLock()
+    #             asyncio.run(websocket.send(form_json()))
+    #             Model.ReleaseLock()
+    
+    # Model.AcquireLock()
+    # G = graph()
+    # G2 = graph()
+    # S = Subscription(Model.GetGraph(),G)
+    # S2 = Subscription(Model.GetWarManager(),G)
+    # G.sub = S
+    # G2.sub = S2
+    # Model.AddSubscription(S)
+    # Model.AddSubscription(S2)
+    #====================
     def teams(r):
         print("team callback triggered")
         asyncio.run(websocket.send(json.dumps({
@@ -316,19 +342,34 @@ async def subscribe_leaderboard(websocket, token):
     Model.AcquireLock()
     [Model.AddSubscription(Subscription(team,teams)) for team in Model.GetTeams().GetTeamsList()]
     Model.AddSubscription(Subscription(Model.GetMarket(),market))
+
+#=================
+
     asyncio.create_task(websocket.send(json.dumps({"teams":[{"name":team.GetName(),"color":team.GetColor(),"balance":team.GetMoney()} for team in Model.GetTeams().GetTeamsList()],"unitTimer":Model.GetGraph().get_routine().GetRemainingTime()})))
+    
+    histories = Model.GetMarket().GetHistories()
+    for i in range(len(histories[currencies_list[0]])):
+        asyncio.create_task(websocket.send(json.dumps({
+            "crypto_currencies":[
+                {"name":x,"price":histories[x][i]} for x in currencies_list
+            ]})))
+
     asyncio.create_task(websocket.send(json.dumps({"crypto_currencies":[{"name":x,"price":y} for x,y in ((name,Model.GetMarket().GetExchangeRate(name)) for name in currencies_list)]})))
     Model.ReleaseLock()
     await websocket.send(reply(200,"Succsesfull subscribe",token))
 
 async def subscribe_graph(websocket, token):
     def form_json():
-        return json.dumps(
+        ret =  json.dumps(
                     {
                         "nodes":[{"id":node.get_id(),"positionX":node.get_x(),"positionY":node.get_y(),"power":node.get_power(),"defense":node.get_power()*node.get_k(),"type":node.get_type(),"level":node.get_level(),"color":node.get_owner().GetColor() if node.get_owner() is not None else None} for node in Model.GetGraph().get_vertexes()],
                         "edges":[{"source":e[0],"target":e[1]} for e in Model.GetGraph().get_edges()],
                         "timers":[{"source":w.get_attacker().get_id(),"target":w.get_defender().get_id(),"timer":Model.GetWarManager().get_war_routine(w).GetRemainingTime()} for w in Model.GetWarManager().get_wars()]
                     })
+        print(ret)
+        return ret
+
+
     Model.AcquireLock()
     asyncio.create_task(websocket.send(form_json()))
     Model.ReleaseLock()
@@ -351,7 +392,7 @@ async def subscribe_graph(websocket, token):
     G = graph()
     G2 = graph()
     S = Subscription(Model.GetGraph(),G)
-    S2 = Subscription(Model.GetWarManager(),G)
+    S2 = Subscription(Model.GetWarManager(),G2)
     G.sub = S
     G2.sub = S2
     Model.AddSubscription(S)
@@ -401,14 +442,23 @@ async def cancel_attack(websocket,token,id_from,id_to):
     id_from,id_to=int(id_from),int(id_to)
     Model.AcquireLock()
 
+    if id_from not in [node.get_id() for node in Model.GetGraph().get_servers_by_owners(Model.GetTeams().GetTeam(token))]:
+        Model.ReleaseLock()
+        return await websocket.send(reply(208,"Loh",token))
+
+    if not Model.GetTeams().GetTeam(token).AddActionsCheck(-1):
+        print(Model.GetTeams().GetTeam(token).GetActions())
+        Model.ReleaseLock()
+        return await websocket.send(reply(209,"not enough actions",token))
+
     Model.GetWarManager().stop_war(Model.GetWarManager().get_war(Model.GetGraph().find_server(id_from),Model.GetGraph().find_server(id_to)))
 
     Model.ReleaseLock()
     await websocket.send(reply(200,"war cancelled!",token))
 
 async def remove_edge(websocket,token,id_from,id_to):
-    await websocket.send(reply(228,"metod ne napisan",token))
-    return
+    # await websocket.send(reply(228,"metod ne napisan",token))
+    # return
     id_from,id_to=int(id_from),int(id_to)
     Model.AcquireLock()
     Model.GetGraph().del_edges(Model.GetGraph().find_server(id_from),Model.GetGraph().find_server(id_to))
