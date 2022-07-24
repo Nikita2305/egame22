@@ -154,6 +154,10 @@ class Graph(Subscriptable, Executable):
     def upgrade_server(self, server: Server, new_power):
         server.set_power(new_power)
 
+    @notifier
+    def give_server(self, server: Server, team):
+        server.set_owner(team)
+
     @staticmethod
     def get_server_type(self, server: Server):
         return server.get_type()

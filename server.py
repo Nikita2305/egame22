@@ -544,12 +544,40 @@ async def attack(websocket,token,id_from,id_to):
         Model.ReleaseLock()
         return await websocket.send(reply(209,"not enough actions",token))
 
+    if not Model.GetGraph().find_server(id_to) in Model.GetGraph().get_neighbours(Model.GetGraph().find_server(id_from)):
+        Model.ReleaseLock()
+        return await websocket.send(reply(228,"Нет ребра",token))
+
     Model.GetWarManager().start_war(Model.GetGraph().find_server(id_from),Model.GetGraph().find_server(id_to))
     Model.GetGraph().find_server(id_from).set_type("attack")
     Model.GetTeams().GetTeam(token).AddActions(-1)
 
     Model.ReleaseLock()
     await websocket.send(reply(200,"war started!",token))
+
+async def add_edges(websocket, token, id_from, ids_to):
+    Model.AcquireLock()
+    id_from = int(id_from) 
+    node_from = Model.GetGraph().find_server(id_from)
+    nodes_to = []
+    for id in ids_to:
+        nodes_to.append(Model.GetGraph().find_server(int(id)))
+
+    Model.GetGraph().add_edges(node_from, nodes_to) 
+
+    Model.ReleaseLock()
+
+    await websocket.send(reply(200, "Edges added", token))
+
+async def give_node(websocket, token, node_id, team_name):
+    Model.AcquireLock()
+
+    team = Model.GetTeams().GetTeamByName(team_name)
+    Model.GetGraph().give_server(Model.GetGraph().find_server(int(node_id)), team)
+
+    Model.ReleaseLock()
+
+    await websocket.send(reply(200, "Node given", token))
 
 async def cancel_attack(websocket,token,id_from,id_to):
     id_from,id_to=int(id_from),int(id_to)
