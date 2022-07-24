@@ -69,7 +69,6 @@ vv,ee = GraphGenerator(nteams=nteams,
                    n_links=4,
                    debug=False)
 servers = []
-print("NEDGES", len(ee))
 for v in vv:
     s = Server(Model.GetGraph(), v.i)
     s.set_x(v.x)
@@ -248,6 +247,13 @@ async def sell(websocket,token,cur,amount):
 
 
 async def remove_node(websocket, token, node_id):
+    Model.AcquireLock()
+    Model.GetGraph().del_vertex(Model.GetGraph().find_server(int(node_id)))
+    Model.ReleaseLock()
+    
+    await websocket.send(reply(200,"OK",token))
+
+async def off_node(websocket, token, node_id):
     Model.AcquireLock()
     Model.GetGraph().find_server(int(node_id)).turn_off()
     Model.ReleaseLock()
