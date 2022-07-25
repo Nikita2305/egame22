@@ -162,8 +162,8 @@ def GraphGenerator(nteams,
             possible_edges.append(e)
     possible_edges.sort(key=lambda x: x[2])
     
-    sector_v = list(core_sector_v)
-    sector_v += outer_sector_v
+    sector_v = list(outer_sector_v)
+    sector_v += core_sector_v
     sector_e = list(core_sector_e)
     sector_e += outer_sector_e
     sector_e += possible_edges[0:1]
