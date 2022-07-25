@@ -148,6 +148,8 @@ class Event:
     def __getstate__(self):
         self.states_list_ = [cond.SaveState() for cond, routine in self.conditions_list_]
         state = self.__dict__.copy()
+        del state["eventmodule_"]
+        del state["conditions_list_"]
         return state
     def __setstate__(self, state):
         self.__dict__.update(state)
