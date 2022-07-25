@@ -50,7 +50,7 @@ if len(sys.argv) == 1:
     Model.GetInstance()
     Model.GetInstance().market_=Market(5,cur_bases)
     Model.GetInstance().teams_=TeamsManager(currencies_list)
-    nteams = 4;
+    nteams = 8;
     colors = [
         "#1d85e8",
         "#f88d2c",
@@ -68,11 +68,12 @@ if len(sys.argv) == 1:
     Model.GetInstance().graph_=Graph(120,currencies_list)
     vv,ee = GraphGenerator(nteams=nteams,
                     n_outer_ring_vert_per_team=12, 
-                    n_core_vert_per_team=4,
+                    n_core_vert_per_team=6,
                     n_outer_edges=20,
-                    n_core_edges=3,
+                    n_core_edges=8,
                     n_links=4,
-                    debug=False)
+                    seed=0x454a89,
+                    debug=True)
     servers = []
     for v in vv:
         s = Server(Model.GetGraph(), v.i)
@@ -92,21 +93,21 @@ if len(sys.argv) == 1:
     Model.GetInstance().events_ = EventManager()
 
     Model.GetInstance().news_feed_=NewsFeed(forums)
-
-    for name in forums:
-        Model.ScheduleRoutine(Routine(Floodilka("2ch"), 30))
-
-    time.sleep(2)
-    Model.ScheduleRoutine(RepeatedRoutine(Dumper("state"),10))
-
-    time.sleep(2)
 else:
     restore(sys.argv[1])
     Model.AcquireLock()
     Model.GetMarket().Run()
     Model.GetGraph().run()
     Model.GetWarManager().run()
-    
+
+for name in forums:
+    Model.ScheduleRoutine(Routine(Floodilka("2ch"), 30))
+
+time.sleep(2)
+Model.ScheduleRoutine(RepeatedRoutine(Dumper("state"),30))
+
+time.sleep(2)
+
 Model.ReleaseLock()
 Model.Run()
 

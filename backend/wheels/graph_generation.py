@@ -43,9 +43,13 @@ def check_spread(v,verts,r):
             return False
     return True
 
-def check_triangles_altitudes(v,verts,lim):
+def check_triangles_altitudes(v,verts,lim, r_check=25):
     for i in range(len(verts)):
+        if v.distance_sq(verts[i]) > r_check**2:
+            continue
         for j in range(i+1,len(verts)):
+            if v.distance_sq(verts[j]) > r_check**2:
+                continue
             if v.min_altitude(verts[i],verts[j]) < lim:
                 return False
     return True
@@ -125,9 +129,9 @@ def GraphGenerator(nteams,
     while len(outer_sector_v) != n_outer_ring_vert_per_team:
         v = generate_in_sector(rng,r1,R,max_angle)
         vv = Vert(v[0],v[1])
-        if not check_spread(vv,outer_sector_v,9):
+        if not check_spread(vv,outer_sector_v,6):
             continue
-        if not check_triangles_altitudes(vv,outer_sector_v,1):
+        if not check_triangles_altitudes(vv,outer_sector_v,5):
             continue
         outer_sector_v.append(vv)
     outer_sector_e = generate_edges(outer_sector_v, n_outer_edges)
@@ -140,7 +144,7 @@ def GraphGenerator(nteams,
         vv = Vert(v[0],v[1])
         if not check_spread(vv,core_sector_v,6):
             continue
-        if not check_triangles_altitudes(vv,core_sector_v,1):
+        if not check_triangles_altitudes(vv,core_sector_v,5):
             continue
         core_sector_v.append(vv)
     core_sector_e = generate_edges(core_sector_v, n_core_edges)
