@@ -51,6 +51,9 @@ class Routine:
 
     def Execute(self): 
         self.mutex_.acquire()
+        backend.model.Model.AcquireLock()
+        backend.model.Model.EraseRoutine(self) # Erase at most one of several possible equal Routines
+        backend.model.Model.ReleaseLock(schedule_subscriptions=False)
         self.executed_ = True
         try:
             self.executable_(self)
@@ -59,9 +62,6 @@ class Routine:
             print(self.executable_)
         finally: 
             self.mutex_.release()
-        backend.model.Model.AcquireLock()
-        backend.model.Model.EraseRoutine(self) # Erase at most one of several possible equal Routines
-        backend.model.Model.ReleaseLock(schedule_subscriptions=False)
 
     def Schedule(self):
         self.executed_ = False;

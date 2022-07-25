@@ -52,7 +52,7 @@ if len(sys.argv) == 1:
     Model.GetInstance()
     Model.GetInstance().market_=Market(30,cur_bases)
     Model.GetInstance().teams_=TeamsManager(currencies_list)
-    nteams = 4
+    nteams = 8;
     colors = [
         "#1d85e8",
         "#f88d2c",
@@ -64,17 +64,33 @@ if len(sys.argv) == 1:
         "#ef9cf0"
         ]
 
+    tokens = [
+        "d38wol0jnq",
+        "zvcud9anrq",
+        "myihnny6br",
+        "q0p0dnqml8",
+        "qlhk1i3ymk",
+        "lwcupn0t3z",
+        "ufowrtlzzz",
+        "0lqgzm5aa2",
+        "pg37ohwhqw",
+        "jhbtru6ocj"
+        ]
+
     for i in range(nteams):
-        Model.GetTeams().CreateTeam("TOKEN"+str(i+1),colors[i])
+        Model.GetTeams().CreateTeam(tokens[i],colors[i])
 
     Model.GetInstance().graph_=Graph(120,currencies_list)
-    vv,ee = GraphGenerator(nteams=nteams,
-                    n_outer_ring_vert_per_team=12, 
-                    n_core_vert_per_team=4,
+    n_outer_ring_vert_per_team = 12
+    n_core_vert_per_team = 4
+    vv,ee,internal_links = GraphGenerator(nteams=nteams,
+                    n_outer_ring_vert_per_team=n_outer_ring_vert_per_team, 
+                    n_core_vert_per_team=n_core_vert_per_team,
                     n_outer_edges=20,
-                    n_core_edges=3,
+                    n_core_edges=6,
                     n_links=4,
-                    debug=False)
+                    seed=0x454a80,
+                    debug=True)
     servers = []
     for v in vv:
         s = Server(Model.GetGraph(), v.i)
@@ -84,10 +100,12 @@ if len(sys.argv) == 1:
         servers.append(s)
     for e in ee:
         Model.GetGraph().add_edges(servers[e[0].i], [servers[e[1].i]])
-        
+    for e in internal_links:
+        Model.GetGraph().add_link(servers[e[0].i], servers[e[1].i])
+    Model.GetGraph().off_links()
     tl = Model.GetTeams().GetTeamsList()
     for i in range(len(tl)):
-        servers[i*16].set_owner(tl[i])
+        servers[i*(n_outer_ring_vert_per_team+n_core_vert_per_team)].set_owner(tl[i])
 
     Model.GetInstance().wars_ = WarManager(servers,120)
 
