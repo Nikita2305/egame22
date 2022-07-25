@@ -113,6 +113,7 @@ class Market (Subscriptable, Executable):
     
     @notifier_with_model_lock
     def __call__(self, routine):
+        print("market update")
         self.time_ += 1
         self.time_converter_.append(Model.GetTimer().GetTime())
         for cur in self.markets_:

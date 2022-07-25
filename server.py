@@ -48,7 +48,7 @@ if len(sys.argv) == 1:
     cur_bases = dict([(c,BaseTrend(100,10,abs(hash(c)))) for c in currencies_list])
     cur_bases["AttendenceCoin"] = AttendancePrice()
     Model.GetInstance()
-    Model.GetInstance().market_=Market(5,cur_bases)
+    Model.GetInstance().market_=Market(30,cur_bases)
     Model.GetInstance().teams_=TeamsManager(currencies_list)
     nteams = 4
     colors = [
@@ -93,25 +93,20 @@ if len(sys.argv) == 1:
 
     Model.GetInstance().news_feed_=NewsFeed(forums)
 
-    for name in forums:
-        Model.ScheduleRoutine(Routine(Floodilka(name), 30))
-
-    time.sleep(2)
-    Model.ScheduleRoutine(RepeatedRoutine(Dumper("state"),10))
-
-    time.sleep(2)
 else:
     restore(sys.argv[1])
     Model.AcquireLock()
-    Model.GetMarket().Run()
-    Model.GetGraph().run()
-    Model.GetWarManager().run()
-    for name in forums:
-        Model.ScheduleRoutine(Routine(Floodilka(name), 30))
 
-    time.sleep(2)
-    Model.ScheduleRoutine(RepeatedRoutine(Dumper("state"),10))
-    
+Model.GetMarket().Run()
+Model.GetGraph().run()
+Model.GetWarManager().run()
+
+for name in forums:
+    Model.ScheduleRoutine(Routine(Floodilka(name), 30))
+
+time.sleep(2)
+Model.ScheduleRoutine(RepeatedRoutine(Dumper("state"),10))
+time.sleep(2)
 Model.ReleaseLock()
 Model.Run()
 
@@ -370,8 +365,13 @@ async def subscribe_leaderboard(websocket, token):
                 Model.ReleaseLock()
             else:
                 Model.AcquireLock()
-                teams()
-                Model.ReleaseLock()
+                try:
+                    teams()
+                except Exception as e:
+                    print(traceback.format_exc())
+                    print("exception handled")
+                finally:
+                    Model.ReleaseLock()
     
     class markett(Executable):
         def __init__(self):
