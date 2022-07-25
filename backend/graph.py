@@ -16,6 +16,7 @@ class Graph(Subscriptable, Executable):
         self.__curr = currencies_bases_dict
         self.__tick = tick
         self.__routine = Routine(self, self.__tick)
+        self.__links = []
 
     def run(self):
         Model.ScheduleRoutine(self.__routine)
@@ -85,6 +86,19 @@ class Graph(Subscriptable, Executable):
             if self.__graph[self.find_same_vertex(vertex)].count(self.find_same_vertex(v)) == 0:
                 self.__graph[self.find_same_vertex(vertex)].append(self.find_same_vertex(v))
                 self.__graph[self.find_same_vertex(v)].append(self.find_same_vertex(vertex))
+    
+    def add_link(self, vertex1: Vertex, vertex2: Vertex):
+        self.__links.append((vertex1,vertex2))
+    
+    @notifier
+    def off_links(self):
+        for l in self.__links:
+            self.del_edges(l[0],l[1])
+
+    @notifier
+    def on_links(self):
+        for l in self.__links:
+            self.add_edges(l[0],[l[1]])
 
     @notifier
     def del_edges(self, vertex1: Vertex, vertex2: Vertex):

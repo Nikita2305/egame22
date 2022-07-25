@@ -167,6 +167,7 @@ def GraphGenerator(nteams,
     sector_e = list(core_sector_e)
     sector_e += outer_sector_e
     sector_e += possible_edges[0:1]
+    sectors_link_edges = [possible_edges[0:1]]
     if debug:
         plot_graph(sector_v,sector_e)
     l = len(sector_v)
@@ -187,6 +188,11 @@ def GraphGenerator(nteams,
             sectors_e[i].append((sectors_v[i][e[0].i],
                                  sectors_v[i][e[1].i],
                                  e[2]))
+        sectors_link_edges.append([])
+        for e in sectors_link_edges[0]:
+            sectors_link_edges[i].append((sectors_v[i][e[0].i],
+                                          sectors_v[i][e[1].i],
+                                          e[2]))
     
     possible_edges = []
     for vc in sectors_v[0]:
@@ -228,15 +234,18 @@ def GraphGenerator(nteams,
         vv[i].i = i
     ee = sum(sectors_e,[])
     
-    if debug:
-        plot_graph(vv,ee, links_e)
-    
     ee += links_e
+    
+    internal_links = sum(sectors_link_edges,[])
+    
+    if debug:
+        plot_graph(vv,ee, internal_links)
+    
     for v in vv:
         v.x = float(v.x)
         v.y = float(v.y)
         v.power = float(v.power)
-    return (vv,ee)
+    return (vv,ee,internal_links)
 
 
 if __name__=="__main__":
