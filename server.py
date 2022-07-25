@@ -673,24 +673,24 @@ async def get_posts(websocket,token,forum):
         print("handled in get_posts")
 
 async def attack(websocket,token,id_from,id_to):
-    id_from,id_to=int(id_from),int(id_to)
     Model.AcquireLock()
-    if id_from not in [node.get_id() for node in Model.GetGraph().get_servers_by_owners(Model.GetTeams().GetTeam(token))]:
-        Model.ReleaseLock()
-        return await websocket.send(reply(208,"Loh",token))
+    r = reply(200, "Ok", token)
+    try:
+        id_from,id_to=int(id_from),int(id_to)
+        if id_from not in [node.get_id() for node in Model.GetGraph().get_servers_by_owners(Model.GetTeams().GetTeam(token))]:
+            r = reply(208,"Loh",token)
 
-    if not Model.GetTeams().GetTeam(token).AddActionsCheck(-1):
-        print(Model.GetTeams().GetTeam(token).GetActions())
-        Model.ReleaseLock()
-        return await websocket.send(reply(209,"not enough actions",token))
+        if not Model.GetTeams().GetTeam(token).AddActionsCheck(-1):
+            print(Model.GetTeams().GetTeam(token).GetActions())
+            r = reply(209,"not enough actions",token)
 
-    if not Model.GetGraph().find_server(id_to) in Model.GetGraph().get_neighbours(Model.GetGraph().find_server(id_from)):
-        Model.ReleaseLock()
-        return await websocket.send(reply(228,"Нет ребра",token))
+        if not Model.GetGraph().find_server(id_to) in Model.GetGraph().get_neighbours(Model.GetGraph().find_server(id_from)):
+            Model.ReleaseLock()
+            return await websocket.send(reply(228,"Нет ребра",token))
 
-    Model.GetWarManager().start_war(Model.GetGraph().find_server(id_from),Model.GetGraph().find_server(id_to))
-    Model.GetGraph().find_server(id_from).set_type("attack")
-    Model.GetTeams().GetTeam(token).AddActions(-1)
+        Model.GetWarManager().start_war(Model.GetGraph().find_server(id_from),Model.GetGraph().find_server(id_to))
+        Model.GetGraph().find_server(id_from).set_type("attack")
+        Model.GetTeams().GetTeam(token).AddActions(-1)
 
     Model.ReleaseLock()
     await websocket.send(reply(200,"war started!",token))
