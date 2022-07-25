@@ -111,12 +111,19 @@ class Graph(Subscriptable, Executable):
     def get_edges(self) -> []:
         ret = []
         lst = self.get_vertexes()
-        for i in range(len(lst)):
-            for j in range(i+1,len(lst)):
-                v0 = lst[i]
-                v1 = lst[j]
-                if v1 in self.__graph[v0]:
-                    ret.append((v0.get_id(),v1.get_id()))
+        # for i in range(len(lst)):
+        #     for j in range(i+1,len(lst)):
+        #         v0 = lst[i]
+        #         v1 = lst[j]
+        #         if v1 in self.__graph[v0]:
+        #             ret.append((v0.get_id(),v1.get_id()))
+        used = set()
+        for i in lst:
+            for j in self.__graph[i]:
+                if j not in used:
+                    ret.append((i.get_id(), j.get_id()))
+            used.add(i)
+
         return ret
 
     def get_servers_by_owners(self, owner: Team) -> []:
@@ -146,6 +153,10 @@ class Graph(Subscriptable, Executable):
     @notifier
     def upgrade_server(self, server: Server, new_power):
         server.set_power(new_power)
+
+    @notifier
+    def give_server(self, server: Server, team):
+        server.set_owner(team)
 
     @staticmethod
     def get_server_type(self, server: Server):

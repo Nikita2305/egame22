@@ -36,6 +36,11 @@ class Team (Subscriptable):
         self.log_.append(LogEntry(cur,reason,amount))
     def AddCryptoMoneyCheck(self, cur, amount):
         return self.cryptowallet_[cur] + amount >= 0
+
+    def RecalculateCryptoToDollar(self, cur, rate):
+        crypto = self.GetCryptoMoney(cur)
+        self.AddMoney(crypto * rate)
+        self.AddCryptoMoney(cur, -crypto)
     
     def GetMoney(self):
         return self.wallet_

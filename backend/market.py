@@ -1,3 +1,4 @@
+from locale import currency
 from backend.wheels.subscriptable import Subscriptable, notifier
 from backend.model import Model, notifier_with_model_lock
 from backend.wheels.routine import Executable, Routine
@@ -127,6 +128,13 @@ class Market (Subscriptable, Executable):
         
     def GetHistory(self, cur):
         return self.markets_[cur].GetHistory();
+
+    def GetHistories(self):
+        histories = {}
+        for cur in self.markets_.keys():
+            histories[cur] = self.GetHistory(cur)
+
+        return histories
     
     def GetExchangeRate(self, cur):
         return self.markets_[cur].GetExchangeRate();
